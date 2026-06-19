@@ -1,0 +1,29 @@
+# FastAPI
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+
+# Database
+sqlalchemy==2.0.25
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Settings
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# HTTP
+httpx==0.26.0
+requests==2.31.0
+
+# Parsing
+beautifulsoup4==4.12.3
+lxml==5.1.0
+feedparser==6.0.11
+
+# AI
+openai==1.12.0
+
+# Utils
+python-multipart==0.0.9

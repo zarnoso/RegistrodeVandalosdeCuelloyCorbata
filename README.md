@@ -1,60 +1,72 @@
-# Chile Transparente - Radar de Transparencia Política
+# Chile Transparente - Registro de Vándalos de Cuello y Corbata
 
-**Plataforma citizen-tech para monitorear problemas legales, patrimonio y conflictos de interés de políticos chilenos.**
+**Radar de Transparencia Política - Detectar a los políticos involucrados en corrupción, colusiones y problemas legales.**
 
-## 🎯 Visión
+## 🚀 Quick Start
 
-Crear un "dossier público" de cada político chileno - quién es, qué empresas tiene, qué problemas legales ha tenido, y qué dicen los medios. Una herramienta de fiscalización ciudadana automatizada que hoy no existe de manera unificada.
+```bash
+# 1. Clonar
+git clone https://github.com/zarnoso/Registro-de-V-ndalos-de-Cuello-y-Corbata.git
+cd Registro-de-V-ndalos-de-Cuello-y-Corbata
+
+# 2. Crear .env
+cp .env.example .env
+# Editar .env con tu DATABASE_URL de Neon
+
+# 3. Instalar dependencias
+pip install -r requirements.txt
+
+# 4. Poblar base de datos
+python scripts/populate_database.py
+
+# 5. Ejecutar API
+uvicorn app.main:app --reload
+
+# 6. Abrir en navegador
+# http://localhost:8000/docs (API docs)
+# http://localhost:8000 (Frontend)
+```
 
 ## 📁 Estructura del Proyecto
 
 ```
 chile-transparencia/
-│
-├── SPEC.md                           # Especificación técnica completa
-├── README.md                         # Este archivo
-│
-├── frontend/
-│   └── index.html                   # Página web completa (demo)
-│
+├── app/
+│   ├── api/routes.py          # Endpoints de la API
+│   ├── core/
+│   │   ├── config.py         # Configuración
+│   │   └── database.py       # Conexión a PostgreSQL
+│   ├── models/models.py      # Modelos SQLAlchemy
+│   ├── schemas/schemas.py    # Schemas Pydantic
+│   ├── services/             # Lógica de negocio
+│   └── main.py               # FastAPI app
 ├── scripts/
-│   ├── 01_scraper_parlamentares.py  # Extrae diputados/senadores del Congreso
-│   ├── 02_scraper_patrimonio.py     # Extrae declaraciones de Infoprobidad
-│   └── 03_pipeline_prensa_llm.py    # Pipeline de prensa con LLM
-│
-└── data/                            # Datos extraídos (generados)
+│   ├── populate_database.py   # Poblar BD con datos
+│   └── scraper_chile.py      # Extraer dados reais
+├── frontend/
+│   └── index.html            # Frontend demo
+├── requirements.txt
+└── .env
 ```
 
-## 🔧 Componentes
+## 🌐 API Endpoints
 
-### 1. Scraper de Parlamentares
-Extrae la lista completa de diputados y senadores desde:
-- **Portal de Datos Abiertos** (opendata.camara.cl) - XML
-- **Sitio del Senado** (senado.cl) - HTML
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/politicos/` | Lista de políticos |
+| GET | `/api/politicos/{id}` | Detalle de político |
+| GET | `/api/politicos/stats` | Estadísticas |
+| GET | `/api/politicos/buscar/rut/{rut}` | Buscar por RUT |
 
-### 2. Scraper de Patrimonio
-Extrae declaraciones de patrimonio e intereses desde:
-- **Infoprobidad.cl** - Declaraciones juradas
-- **Infolobby.cl** - Reuniones con lobbistas
+## 🗄️ Base de Datos (Neon PostgreSQL)
 
-### 3. Pipeline de Prensa con LLM
-Procesa noticias automáticamente para detectar implicaciones de políticos:
-- **CIPER Chile** - Periodismo de investigación
-- **El Mostrador** - Noticias políticas
-- **BioBioChile** - Noticias generales
+El proyecto usa **Neon** (PostgreSQL serverless) con las tablas:
 
-## 🚀 Cómo Empezar
-
-```bash
-# Instalar dependencias
-pip install requests beautifulsoup4 lxml feedparser openai pydantic
-
-# Extraer dados
-python scripts/01_scraper_parlamentares.py
-
-# Abrir frontend
-open frontend/index.html
-```
+- `politicos` - Identidad de autoridades
+- `patrimonio` - Declaraciones de patrimonio
+- `empresas` - Empresas del político
+- `eventos` - Casos legales y alertas
+- `familiares` - Red familiar
 
 ## 📊 Fuentes de Datos
 
