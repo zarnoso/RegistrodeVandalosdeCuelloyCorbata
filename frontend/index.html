@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chile Transparente - Radar de Transparencia Política</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --border: #2a2a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-red: #ef4444;
+            --accent-orange: #f97316;
+            --accent-yellow: #eab308;
+            --accent-green: #22c55e;
+            --accent-blue: #3b82f6;
+            --accent-purple: #a855f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .logo span {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            background: var(--accent-red);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+        }
+
+        .stat-card.red::before { background: var(--accent-red); }
+        .stat-card.orange::before { background: var(--accent-orange); }
+        .stat-card.blue::before { background: var(--accent-blue); }
+        .stat-card.green::before { background: var(--accent-green); }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card.red .stat-value { color: var(--accent-red); }
+        .stat-card.orange .stat-value { color: var(--accent-orange); }
+        .stat-card.blue .stat-value { color: var(--accent-blue); }
+        .stat-card.green .stat-value { color: var(--accent-green); }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            border-color: var(--accent-red);
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .search-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.25rem 1rem 3rem;
+            background: var(--bg-primary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-red);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .politician-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .politician-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .politician-card:hover {
+            border-color: var(--accent-red);
+            transform: translateX(4px);
+        }
+
+        .politician-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .politician-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .politician-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .politician-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .politician-status {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-clean {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-green);
+        }
+
+        .status-warning {
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--accent-orange);
+        }
+
+        .status-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .modal-avatar {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        .modal-title {
+            flex: 1;
+        }
+
+        .modal-title h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-title p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .risk-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .risk-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .risk-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .risk-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .section {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .companies-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .company-item {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .company-name {
+            font-weight: 500;
+        }
+
+        .company-role {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .company-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .company-status.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-green);
+        }
+
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .timeline-item {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border-left: 3px solid var(--accent-orange);
+        }
+
+        .timeline-item.danger {
+            border-left-color: var(--accent-red);
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .timeline-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-source {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .sources-links {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .source-link {
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .source-link:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .main { padding: 1rem; }
+            .risk-summary { grid-template-columns: repeat(2, 1fr); }
+            .politician-card { flex-wrap: wrap; }
+            .politician-status { width: 100%; justify-content: flex-end; margin-top: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">⚖️</div>
+                <div>
+                    <h1>Chile Transparente</h1>
+                    <span>Radar de Transparencia Política</span>
+                </div>
+            </div>
+            <span class="badge">ACTUALIZADO 2026</span>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="stats-grid">
+            <div class="stat-card red">
+                <div class="stat-value">229</div>
+                <div class="stat-label">Parlamentarios Activos</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-value">47</div>
+                <div class="stat-label">Con Registros</div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-value">12</div>
+                <div class="stat-label">Casos Activos</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-value">182</div>
+                <div class="stat-label">Sin Problemas</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="all">📋 Todos</button>
+            <button class="tab" data-tab="diputados">👥 Diputados</button>
+            <button class="tab" data-tab="senadores">🎓 Senadores</button>
+            <button class="tab" data-tab="ejecutivo">🏛️ Ejecutivo</button>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, partido o caso...">
+            </div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="filter-label">Partido</label>
+                    <select class="filter-select" id="filterParty">
+                        <option value="">Todos</option>
+                        <option value="UDI">UDI</option>
+                        <option value="RN">RN</option>
+                        <option value="PS">PS</option>
+                        <option value="PC">PC</option>
+                        <option value="FA">Frente Amplio</option>
+                        <option value="Republicano">Partido Republicano</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Estado</label>
+                    <select class="filter-select" id="filterStatus">
+                        <option value="">Todos</option>
+                        <option value="clean">Sin Registros</option>
+                        <option value="warning">En Investigación</option>
+                        <option value="danger">Formalizado/Condenado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="politician-list" id="politicianList"></div>
+    </main>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-avatar" id="modalAvatar">JD</div>
+                <div class="modal-title">
+                    <h2 id="modalName">Nombre</h2>
+                    <p id="modalMeta">Cargo • Partido • Distrito</p>
+                </div>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const politicos = [
+            {
+                id: 1,
+                nombre: "Juan Díaz",
+                rut: "12.345.678-5",
+                cargo: "Diputado",
+                partido: "UDI",
+                distrito: "Distrito 10",
+                region: "Metropolitana",
+                instituciones: "Cámara de Diputados",
+                es_activo: true,
+                status: "danger",
+                statusText: "Formalizado",
+                patrimonio: {
+                    empresas: [
+                        { nombre: "Inversiones Díaz Ltda.", rol: "Socio", participacion: "35%", estado: "Activa" },
+                        { nombre: "Consultora Nacional SpA", rol: "Socio", participacion: "100%", estado: "Activa" }
+                    ],
+                    acciones: [{ emisor: "Cencosud S.A.", numero: 5000, porcentaje: 0.05 }]
+                },
+                eventos: [
+                    {
+                        fecha: "2024-03-15",
+                        caso: "Caso SQM",
+                        tipo: "Financiamiento Irregular",
+                        estado: "Formalizado",
+                        resumen: "Investigado por recibir pagos irregulares de SQM a través de boletas ideológicamente falsas.",
+                        fuente: "CIPER Chile",
+                        url: "https://ciperchile.cl"
+                    },
+                    {
+                        fecha: "2019-06-20",
+                        caso: "Caso Cascadas",
+                        tipo: "Delitos Económicos",
+                        estado: "Sobreseído",
+                        resumen: "Investigación por operaciones en bolsa relacionadas con empresas del grupo.",
+                        fuente: "El Mostrador",
+                        url: "https://elmostrador.cl"
+                    }
+                ]
+            },
+            {
+                id: 2,
+                nombre: "María González",
+                rut: "15.678.901-2",
+                cargo: "Senadora",
+                partido: "PS",
+                region: "Valparaíso",
+                instituciones: "Senado",
+                es_activo: true,
+                status: "warning",
+                statusText: "Investigado",
+                patrimonio: {
+                    empresas: [{ nombre: "Consultora Valparaíso SpA", rol: "Socio", participacion: "50%", estado: "Activa" }],
+                    acciones: []
+                },
+                eventos: [
+                    {
+                        fecha: "2024-01-10",
+                        caso: "Denuncia Contraloría",
+                        tipo: "Tráfico de Influencias",
+                        estado: "En Investigación",
+                        resumen: "Denuncia por posible uso de información privilegiada en licitaciones públicas.",
+                        fuente: "La Tercera",
+                        url: "https://latercera.com"
+                    }
+                ]
+            },
+            {
+                id: 3,
+                nombre: "Carlos Rodríguez",
+                rut: "9.876.543-1",
+                cargo: "Diputado",
+                partido: "RN",
+                distrito: "Distrito 25",
+                region: "Biobío",
+                instituciones: "Cámara de Diputados",
+                es_activo: true,
+                status: "clean",
+                statusText: "Sin Registros",
+                patrimonio: { empresas: [], acciones: [] },
+                eventos: []
+            },
+            {
+                id: 4,
+                nombre: "Ana Martínez",
+                rut: "7.654.321-0",
+                cargo: "Ministra",
+                partido: "UDI",
+                instituciones: "Ministerio de Hacienda",
+                es_activo: true,
+                status: "warning",
+                statusText: "Investigado",
+                patrimonio: {
+                    empresas: [{ nombre: "Finanzas Martínez S.A.", rol: "Accionista", participacion: "15%", estado: "Activa" }],
+                    acciones: []
+                },
+                eventos: [
+                    {
+                        fecha: "2023-11-05",
+                        caso: "Conflicto de Interés",
+                        tipo: "Cohecho",
+                        estado: "En Investigación",
+                        resumen: "Posible conflicto de interés en decisiones de presupuesto.",
+                        fuente: "CIPER Chile",
+                        url: "https://ciperchile.cl"
+                    }
+                ]
+            },
+            {
+                id: 5,
+                nombre: "Pedro Sánchez",
+                rut: "14.123.456-7",
+                cargo: "Senador",
+                partido: "PC",
+                region: "Antofagasta",
+                instituciones: "Senado",
+                es_activo: true,
+                status: "danger",
+                statusText: "Condenado",
+                patrimonio: { empresas: [], acciones: [] },
+                eventos: [
+                    {
+                        fecha: "2018-03-20",
+                        caso: "Caso Pacogate",
+                        tipo: "Malversación",
+                        estado: "Condenado",
+                        resumen: "Condenado por malversación de fondos reservados. Peña: 3 años remitidos.",
+                        fuente: "Poder Judicial",
+                        url: "https://pjud.cl"
+                    }
+                ]
+            },
+            {
+                id: 6,
+                nombre: "Laura Fernández",
+                rut: "16.234.567-8",
+                cargo: "Diputada",
+                partido: "FA",
+                distrito: "Distrito 8",
+                region: "Metropolitana",
+                instituciones: "Cámara de Diputados",
+                es_activo: true,
+                status: "clean",
+                statusText: "Sin Registros",
+                patrimonio: { empresas: [], acciones: [] },
+                eventos: []
+            }
+        ];
+
+        function getInitials(nombre) {
+            return nombre.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+        }
+
+        function renderList() {
+            const container = document.getElementById('politicianList');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const party = document.getElementById('filterParty').value;
+            const status = document.getElementById('filterStatus').value;
+            const activeTab = document.querySelector('.tab.active').dataset.tab;
+
+            let filtered = politicos.filter(p => {
+                if (search && !p.nombre.toLowerCase().includes(search) && !p.partido.toLowerCase().includes(search)) return false;
+                if (party && p.partido !== party) return false;
+                if (status && p.status !== status) return false;
+                if (activeTab === 'diputados' && !p.cargo.includes('Diputad')) return false;
+                if (activeTab === 'senadores' && !p.cargo.includes('Senad')) return false;
+                if (activeTab === 'ejecutivo' && !p.cargo.includes('inist')) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>Sin resultados</h3><p>No se encontraron parlamentares con los filtros seleccionados.</p></div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => `
+                <div class="politician-card" onclick="openModal(${p.id})">
+                    <div class="politician-avatar">${getInitials(p.nombre)}</div>
+                    <div class="politician-info">
+                        <div class="politician-name">${p.nombre} <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">${p.rut}</span></div>
+                        <div class="politician-meta">${p.cargo} • ${p.partido} ${p.distrito ? '• ' + p.distrito : ''}</div>
+                    </div>
+                    <div class="politician-status">
+                        <span class="status-badge status-${p.status}">${p.statusText}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openModal(id) {
+            const p = politicos.find(x => x.id === id);
+            if (!p) return;
+
+            document.getElementById('modalAvatar').textContent = getInitials(p.nombre);
+            document.getElementById('modalName').textContent = p.nombre;
+            document.getElementById('modalMeta').textContent = `${p.cargo} • ${p.partido} • ${p.distrito || p.region || p.instituciones}`;
+
+            let body = `
+                <div class="risk-summary">
+                    <div class="risk-card"><div class="risk-value" style="color: var(--accent-red);">${p.eventos.length}</div><div class="risk-label">Eventos</div></div>
+                    <div class="risk-card"><div class="risk-value" style="color: var(--accent-blue);">${p.patrimonio.empresas.length}</div><div class="risk-label">Empresas</div></div>
+                    <div class="risk-card"><div class="risk-value" style="color: var(--accent-green);">${p.patrimonio.acciones.length}</div><div class="risk-label">Acciones</div></div>
+                    <div class="risk-card"><div class="risk-value">${p.eventos.filter(e => e.estado === 'En Investigación' || e.estado === 'Formalizado').length}</div><div class="risk-label">Casos Activos</div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">🏢 Patrimonio y Empresas</div>
+                    <div class="companies-list">
+            `;
+            
+            if (p.patrimonio.empresas.length > 0) {
+                p.patrimonio.empresas.forEach(emp => {
+                    body += `<div class="company-item"><div><div class="company-name">${emp.nombre}</div><div class="company-role">${emp.rol} • ${emp.participacion}</div></div><span class="company-status ${emp.estado === 'Activa' ? 'active' : ''}">${emp.estado}</span></div>`;
+                });
+            } else {
+                body += '<p style="color: var(--text-muted); font-size: 0.875rem;">Sin empresas declaradas</p>';
+            }
+            
+            body += '</div></div><div class="section"><div class="section-title">⚖️ Historial Legal y Prensa</div><div class="timeline">';
+            
+            if (p.eventos.length > 0) {
+                p.eventos.forEach(evt => {
+                    const isDanger = evt.estado === 'Formalizado' || evt.estado === 'Condenado';
+                    body += `<div class="timeline-item ${isDanger ? 'danger' : ''}"><div class="timeline-header"><div><div class="timeline-title">${evt.caso}</div><span class="status-badge status-${isDanger ? 'danger' : 'warning'}" style="font-size: 0.65rem;">${evt.estado}</span></div><div class="timeline-date">${evt.fecha}</div></div><p class="timeline-desc">${evt.resumen}</p><a href="${evt.url}" target="_blank" class="timeline-source">📰 ${evt.fuente}</a></div>`;
+                });
+            } else {
+                body += '<p style="color: var(--text-muted); font-size: 0.875rem;">Sin eventos registrados en nuestra base de datos.</p>';
+            }
+            
+            body += '</div></div><div class="section"><div class="section-title">📎 Fuentes Oficiales</div><div class="sources-links"><a href="https://www.pjud.cl" target="_blank" class="source-link">⚖️ Poder Judicial</a><a href="https://www.infoprobidad.cl" target="_blank" class="source-link">📋 Infoprobidad</a><a href="https://www.fne.cl" target="_blank" class="source-link">📊 Fiscalía Nacional Económica</a><a href="https://www.ciperchile.cl" target="_blank" class="source-link">🔍 CIPER Chile</a></div></div>';
+
+            document.getElementById('modalBody').innerHTML = body;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderList);
+        document.getElementById('filterParty').addEventListener('change', renderList);
+        document.getElementById('filterStatus').addEventListener('change', renderList);
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderList();
+            });
+        });
+
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') closeModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        renderList();
+    </script>
+</body>
+</html>

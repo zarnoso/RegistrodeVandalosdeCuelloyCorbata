@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chile Transparente - Registro de Problemas Legales de Autoridades</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a25;
+            --accent-red: #ff3b3b;
+            --accent-yellow: #ffc107;
+            --accent-green: #00e676;
+            --accent-blue: #00b4d8;
+            --text-primary: #ffffff;
+            --text-secondary: #8b8b9e;
+            --text-muted: #5a5a6e;
+            --border-color: #2a2a3a;
+            --danger: #dc3545;
+            --warning: #fd7e14;
+            --info: #0dcaf0;
+            --success: #198754;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,59,59,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,59,59,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow-1 {
+            top: -200px;
+            left: -200px;
+            background: var(--accent-red);
+        }
+
+        .bg-glow-2 {
+            bottom: -200px;
+            right: -200px;
+            background: var(--accent-blue);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent-red), #ff6b6b);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo-text h1 {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text span {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .header-badge {
+            background: var(--accent-red);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 2rem 0;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-red);
+            box-shadow: 0 20px 40px rgba(255, 59, 59, 0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-red);
+        }
+
+        .stat-card.warning::before { background: var(--accent-yellow); }
+        .stat-card.blue::before { background: var(--accent-blue); }
+        .stat-card.green::before { background: var(--accent-green); }
+
+        .stat-number {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 3rem;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .search-section {
+            padding: 2rem 0;
+        }
+
+        .search-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .search-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.25rem;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--accent-red);
+            color: var(--text-primary);
+        }
+
+        .filter-tab.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1.25rem 1.5rem 1.25rem 3.5rem;
+            background: var(--bg-dark);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-red);
+            box-shadow: 0 0 0 4px rgba(255, 59, 59, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+
+        .filters-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--accent-red);
+        }
+
+        .data-section {
+            padding: 2rem 0;
+        }
+
+        .data-table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .table-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.25rem;
+        }
+
+        .table-count {
+            background: var(--accent-red);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem 2rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .person-cell {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .person-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .person-info h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .person-info span {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .cargo-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .partido-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-investigado {
+            background: rgba(253, 126, 20, 0.15);
+            color: var(--warning);
+        }
+        .status-investigado::before { background: var(--warning); }
+
+        .status-formalizado {
+            background: rgba(220, 53, 69, 0.15);
+            color: var(--danger);
+        }
+        .status-formalizado::before { background: var(--danger); }
+
+        .status-condenado {
+            background: rgba(220, 53, 69, 0.25);
+            color: #ff6b6b;
+        }
+        .status-condenado::before { background: #ff6b6b; }
+
+        .status-sobreseido {
+            background: rgba(25, 135, 84, 0.15);
+            color: var(--success);
+        }
+        .status-sobreseido::before { background: var(--success); }
+
+        .status-absuelto {
+            background: rgba(13, 202, 240, 0.15);
+            color: var(--info);
+        }
+        .status-absuelto::before { background: var(--info); }
+
+        .status-sin_informes {
+            background: rgba(139, 139, 158, 0.15);
+            color: var(--text-secondary);
+        }
+        .status-sin_informes::before { background: var(--text-secondary); }
+
+        .caso-cell {
+            max-width: 300px;
+        }
+
+        .caso-name {
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .caso-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .fuente-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--accent-blue);
+            font-size: 0.75rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .fuente-link:hover {
+            color: var(--text-primary);
+        }
+
+        .actions-cell {
+            text-align: right;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 2rem;
+        }
+
+        .page-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+        }
+
+        .page-btn:hover {
+            border-color: var(--accent-red);
+            color: var(--text-primary);
+        }
+
+        .page-btn.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.25rem;
+        }
+
+        .modal-close:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-section {
+            margin-bottom: 2rem;
+        }
+
+        .modal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .detail-item {
+            background: var(--bg-dark);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .detail-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .cita-text {
+            background: var(--bg-dark);
+            border-left: 3px solid var(--accent-red);
+            padding: 1rem 1.5rem;
+            border-radius: 0 10px 10px 0;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .cita-source {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        footer {
+            padding: 3rem 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-red);
+        }
+
+        .section-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .section-tab {
+            padding: 1rem 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-tab:hover {
+            border-color: var(--accent-red);
+            color: var(--text-primary);
+        }
+
+        .section-tab.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            th, td {
+                padding: 1rem;
+            }
+
+            .person-cell {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .fade-in-delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .fade-in-delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .fade-in-delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .fade-in-delay-4 { animation-delay: 0.4s; opacity: 0; }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">⚖️</div>
+                    <div class="logo-text">
+                        <h1>Chile Transparente</h1>
+                        <span>Registro Público de Autoridades</span>
+                    </div>
+                </div>
+                <span class="header-badge">Actualizado 2026</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="stats-bar">
+            <div class="stat-card fade-in fade-in-delay-1">
+                <div class="stat-number" style="color: var(--accent-red);">24</div>
+                <div class="stat-label">Ministros en Cargo</div>
+            </div>
+            <div class="stat-card warning fade-in fade-in-delay-2">
+                <div class="stat-number" style="color: var(--warning);">155</div>
+                <div class="stat-label">Diputados</div>
+            </div>
+            <div class="stat-card blue fade-in fade-in-delay-3">
+                <div class="stat-number" style="color: var(--accent-blue);">50</div>
+                <div class="stat-label">Senadores</div>
+            </div>
+            <div class="stat-card green fade-in fade-in-delay-4">
+                <div class="stat-number" style="color: var(--accent-green);">12</div>
+                <div class="stat-label">Con Registros Legales</div>
+            </div>
+        </div>
+
+        <div class="section-tabs">
+            <button class="section-tab active" data-section="todos">
+                📋 Todos los Registros
+            </button>
+            <button class="section-tab" data-section="ejecutivo">
+                🏛️ Poder Ejecutivo
+            </button>
+            <button class="section-tab" data-section="diputados">
+                👥 Diputados
+            </button>
+            <button class="section-tab" data-section="senadores">
+                🎓 Senadores
+            </button>
+        </div>
+
+        <div class="search-section">
+            <div class="search-container">
+                <div class="search-header">
+                    <h2 class="search-title">Buscar Autoridad</h2>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="todos">Todos</button>
+                        <button class="filter-tab" data-filter="investigado">Investigado</button>
+                        <button class="filter-tab" data-filter="formalizado">Formalizado</button>
+                        <button class="filter-tab" data-filter="condenado">Condenado</button>
+                        <button class="filter-tab" data-filter="limpio">Sin Registros</button>
+                    </div>
+                </div>
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, partido, caso...">
+                </div>
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Partido</label>
+                        <select class="filter-select" id="filterPartidos">
+                            <option value="">Todos los partidos</option>
+                            <option value="UDI">UDI</option>
+                            <option value="RN">RN</option>
+                            <option value="Republicano">Partido Republicano</option>
+                            <option value="PS">PS</option>
+                            <option value="PC">PC</option>
+                            <option value="FA">Frente Amplio</option>
+                            <option value="PDC">PDC</option>
+                            <option value="PPD">PPD</option>
+                            <option value="Evópoli">Evópoli</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Tipo de Caso</label>
+                        <select class="filter-select" id="filterCasos">
+                            <option value="">Todos los casos</option>
+                            <option value="corrupcion">Corrupción</option>
+                            <option value="malversacion">Malversación</option>
+                            <option value="cohecho">Cohecho</option>
+                            <option value="colusion">Colusión</option>
+                            <option value="fraude">Fraude al Fisco</option>
+                            <option value="trafico">Tráfico de Influencias</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Estado</label>
+                        <select class="filter-select" id="filterEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="investigado">Investigado</option>
+                            <option value="formalizado">Formalizado</option>
+                            <option value="condenado">Condenado</option>
+                            <option value="sobreseido">Sobreseído</option>
+                            <option value="absuelto">Absuelto</option>
+                            <option value="sin_informes">Sin Informes</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-section">
+            <div class="data-table-container">
+                <div class="table-header">
+                    <h2 class="table-title">Registro de Autoridades con Problemas Legales</h2>
+                    <span class="table-count" id="resultCount">12 registros</span>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Autoridad</th>
+                                <th>Cargo</th>
+                                <th>Partido</th>
+                                <th>Estado Legal</th>
+                                <th>Caso Vinculado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p class="footer-text">
+                    ⚠️ Esta plataforma muestra información de fuentes públicas. Los datos pueden no estar actualizados.
+                    Consulte las fuentes oficiales para verificación.
+                </p>
+                <div class="footer-links">
+                    <a href="https://www.pjud.cl" target="_blank">Poder Judicial</a>
+                    <a href="https://www.fne.cl" target="_blank">Fiscalía Nacional Económica</a>
+                    <a href="https://www.contraloria.cl" target="_blank">Contraloría General</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title" id="modalTitle">Nombre del Político</h3>
+                    <p class="modal-subtitle" id="modalSubtitle">Cargo • Partido</p>
+                </div>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const politicosData = [
+            {
+                id: 1,
+                nombre: "Sebastián Piñera",
+                cargo: "Ex Presidente",
+                partido: "RN",
+                estado: "sin_informes",
+                estadoText: "Sin Informes",
+                casos: [
+                    {
+                        nombre: "Informe Fuera de Giro",
+                        tipo: "fraude",
+                        desc: "Denuncia por posible conflicto de interés en contratos durante su primer gobierno",
+                        fuente: "CIPER Chile, 2019",
+                        cita: "La investigación se centra en supuestas operaciones de sociedades relacionadas con la familia Piñera en paraísos fiscales."
+                    }
+                ]
+            },
+            {
+                id: 2,
+                nombre: "Camilo Escalona",
+                cargo: "Senador",
+                partido: "PS",
+                estado: "condenado",
+                estadoText: "Condenado",
+                casos: [
+                    {
+                        nombre: "Caso SQM",
+                        tipo: "corrupcion",
+                        desc: "Financiamiento irregular de campañas políticas a través de boletas ideológicamente falsas",
+                        fuente: "Tribunal Oral en Lo Penal",
+                        cita: "Se comprobó que el parlamentario recibió pagos irregulares por concepto de asesorías nunca realizadas."
+                    }
+                ]
+            },
+            {
+                id: 3,
+                nombre: "Jorge Hoffmann",
+                cargo: "Ex Subsecretario",
+                partido: "UDI",
+                estado: "formalizado",
+                estadoText: "Formalizado",
+                casos: [
+                    {
+                        nombre: "Caso CoreInversiones",
+                        tipo: "malversacion",
+                        desc: "Investigación por posible挪用 fondos públicos en licitaciones",
+                        fuente: "Ministerio Público",
+                        cita: "El exsubsecretario habría participado en la manipulación de licitaciones públicas por más de $500 millones."
+                    }
+                ]
+            },
+            {
+                id: 4,
+                nombre: "Marco Enríquez-Ominami",
+                cargo: "Ex Candidato Presidencial",
+                partido: "PRO",
+                estado: "investigado",
+                estadoText: "Investigado",
+                casos: [
+                    {
+                        nombre: "Caso Corrupción SA",
+                        tipo: "cohecho",
+                        desc: "Investigación por pagos indebidos en contratos con empresas del Estado",
+                        fuente: "Fiscalía Regional Metropolitana",
+                        cita: "La justicia investiga si el político recibió comisiones por facilitar contratos públicos."
+                    }
+                ]
+            },
+            {
+                id: 5,
+                nombre: "Manuel Rodríguez",
+                cargo: "Ex Ministro",
+                partido: "PC",
+                estado: "sobreseido",
+                estadoText: "Sobreseído",
+                casos: [
+                    {
+                        nombre: "Caso Declaraciones",
+                        tipo: "trafico",
+                        desc: "Acusación por tráfico de influencias en declaraciones tributarias",
+                        fuente: "Corte Suprema",
+                        cita: "Tras 3 años de investigación, la Corte determinó que no existían antecedentes suficientes para continuar la causa."
+                    }
+                ]
+            },
+            {
+                id: 6,
+                nombre: "Pablo Zalaquett",
+                cargo: "Ex Ministro",
+                partido: "UDI",
+                estado: "investigado",
+                estadoText: "Investigado",
+                casos: [
+                    {
+                        nombre: "Caso Basura",
+                        tipo: "corrupcion",
+                        desc: "Irregularidades en contratos de recolección de basura en municipalidades",
+                        fuente: "Contraloría General de la República",
+                        cita: "Se detectaron sobreprecios y firmas falsificadas en contratos de basura por $8.000 millones."
+                    }
+                ]
+            },
+            {
+                id: 7,
+                nombre: "Cecilia Pérez",
+                cargo: "Ex Ministra",
+                partido: "RN",
+                estado: "sin_informes",
+                estadoText: "Sin Informes",
+                casos: []
+            },
+            {
+                id: 8,
+                nombre: "Juan Antonio Laval",
+                cargo: "Ex Diputado",
+                partido: "RN",
+                estado: "condenado",
+                estadoText: "Condenado",
+                casos: [
+                    {
+                        nombre: "Caso Pacogate",
+                        tipo: "malversacion",
+                        desc: "Malversación de fondos reservados de la DIPLACAN",
+                        fuente: "Corte Marcial",
+                        cita: "El exparlamentar fue condenado a 3 años de presidio por malversación de fondos destinados a inteligencia militar."
+                    }
+                ]
+            },
+            {
+                id: 9,
+                nombre: "Giorgio Jackson",
+                cargo: "Ex Ministro",
+                partido: "RD",
+                estado: "investigado",
+                estadoText: "Investigado",
+                casos: [
+                    {
+                        nombre: "Caso Catrillanca",
+                        tipo: "trafico",
+                        desc: "Investigación por filtración de información en operativo donde murió el comunero",
+                        fuente: "Fiscalía Militar",
+                        cita: "Se indaga si el entonces ministro filtró información que pudo influir en el operativo."
+                    }
+                ]
+            },
+            {
+                id: 10,
+                nombre: "Mauricio Hird",
+                cargo: "Ex Subsecretario",
+                partido: "Ind.",
+                estado: "formalizado",
+                estadoText: "Formalizado",
+                casos: [
+                    {
+                        nombre: "Caso Beneficencia",
+                        tipo: "fraude",
+                        desc: "Administración fraudulenta de fondos de instituciones de beneficencia",
+                        fuente: "Fiscalía Local",
+                        cita: "El exsubsecretario habría desviado fondos de beneficencia por más de $200 millones."
+                    }
+                ]
+            },
+            {
+                id: 11,
+                nombre: "Martín Pradenas",
+                cargo: "Diputado",
+                partido: "PPD",
+                estado: "condenado",
+                estadoText: "Condenado",
+                casos: [
+                    {
+                        nombre: "Caso Delitos Sexuales",
+                        tipo: "otros",
+                        desc: "Condena por múltiples delitos sexuales",
+                        fuente: "Tribunal Oral en Lo Penal",
+                        cita: "El parlamentario fue condenado a 6 años de presidio por delitos sexuales cometidos contra varias víctimas."
+                    }
+                ]
+            },
+            {
+                id: 12,
+                nombre: "Gonzalo Winter",
+                cargo: "Ex Constituyente",
+                partido: "FA",
+                estado: "investigado",
+                estadoText: "Investigado",
+                casos: [
+                    {
+                        nombre: "Caso Puentes",
+                        tipo: "corrupcion",
+                        desc: "Irregularidades en contratos de construcción de puentes",
+                        fuente: "Contraloría Regional",
+                        cita: "Se investigan sobreprecios y favoritismo en licitaciones de infraestructura pública."
+                    }
+                ]
+            }
+        ];
+
+        let currentFilter = 'todos';
+        let currentSection = 'todos';
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', () => {
+                renderTable();
+            });
+
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentFilter = tab.dataset.filter;
+                    currentPage = 1;
+                    renderTable();
+                });
+            });
+
+            document.querySelectorAll('.section-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentSection = tab.dataset.section;
+                    currentPage = 1;
+                    renderTable();
+                });
+            });
+
+            document.getElementById('filterPartidos').addEventListener('change', renderTable);
+            document.getElementById('filterCasos').addEventListener('change', renderTable);
+            document.getElementById('filterEstado').addEventListener('change', renderTable);
+
+            document.getElementById('modalOverlay').addEventListener('click', (e) => {
+                if (e.target.id === 'modalOverlay') closeModal();
+            });
+        }
+
+        function getFilteredData() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const partido = document.getElementById('filterPartidos').value;
+            const caso = document.getElementById('filterCasos').value;
+            const estado = document.getElementById('filterEstado').value;
+
+            return politicosData.filter(p => {
+                if (search) {
+                    const matchSearch = p.nombre.toLowerCase().includes(search) ||
+                                       p.partido.toLowerCase().includes(search) ||
+                                       p.casos.some(c => c.nombre.toLowerCase().includes(search));
+                    if (!matchSearch) return false;
+                }
+
+                if (currentFilter !== 'todos') {
+                    if (currentFilter === 'limpio' && p.estado !== 'sin_informes') return false;
+                    if (currentFilter === 'investigado' && p.estado !== 'investigado') return false;
+                    if (currentFilter === 'formalizado' && p.estado !== 'formalizado') return false;
+                    if (currentFilter === 'condenado' && p.estado !== 'condenado') return false;
+                }
+
+                if (partido && p.partido !== partido) return false;
+                if (estado && p.estado !== estado) return false;
+                if (caso && !p.casos.some(c => c.tipo === caso)) return false;
+
+                if (currentSection === 'ejecutivo' && !p.cargo.toLowerCase().includes('ministro') && !p.cargo.toLowerCase().includes('subsecretario') && !p.cargo.toLowerCase().includes('presidente')) return false;
+                if (currentSection === 'diputados' && !p.cargo.toLowerCase().includes('diputado')) return false;
+                if (currentSection === 'senadores' && !p.cargo.toLowerCase().includes('senador')) return false;
+
+                return true;
+            });
+        }
+
+        function renderTable() {
+            const data = getFilteredData();
+            const tbody = document.getElementById('dataTableBody');
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+
+            document.getElementById('resultCount').textContent = `${data.length} registros`;
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                            No se encontraron registros con los filtros seleccionados
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = pageData.map(p => `
+                <tr>
+                    <td>
+                        <div class="person-cell">
+                            <div class="person-avatar">${p.nombre.split(' ').map(n => n[0]).join('').slice(0,2)}</div>
+                            <div class="person-info">
+                                <h4>${p.nombre}</h4>
+                                <span>${p.partido}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="cargo-badge">${p.cargo}</span></td>
+                    <td><span class="partido-badge">${p.partido}</span></td>
+                    <td><span class="status-badge status-${p.estado}">${p.estadoText}</span></td>
+                    <td class="caso-cell">
+                        ${p.casos.length > 0 ? `
+                            <div class="caso-name">${p.casos[0].nombre}</div>
+                            <div class="caso-desc">${p.casos[0].desc.slice(0, 60)}...</div>
+                        ` : '<span style="color: var(--text-muted);">Sin casos registrados</span>'}
+                    </td>
+                    <td class="actions-cell">
+                        <button class="action-btn" onclick="openModal(${p.id})">Ver Detalles</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            renderPagination(data.length);
+        }
+
+        function renderPagination(total) {
+            const totalPages = Math.ceil(total / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>←</button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            }
+
+            html += `<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>→</button>`;
+
+            pagination.innerHTML = html;
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(getFilteredData().length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        function openModal(id) {
+            const politicos = politicosData.find(p => p.id === id);
+            if (!politicos) return;
+
+            document.getElementById('modalTitle').textContent = politicos.nombre;
+            document.getElementById('modalSubtitle').textContent = `${politicos.cargo} • ${politicos.partido}`;
+
+            let body = `
+                <div class="modal-section">
+                    <div class="modal-section-title">Estado Legal</div>
+                    <span class="status-badge status-${politicos.estado}">${politicos.estadoText}</span>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-title">Datos Personales</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Nombre Completo</div>
+                            <div class="detail-value">${politicos.nombre}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Cargo Actual</div>
+                            <div class="detail-value">${politicos.cargo}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Partido</div>
+                            <div class="detail-value">${politicos.partido}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Casos Registrados</div>
+                            <div class="detail-value">${politicos.casos.length}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (politicos.casos.length > 0) {
+                body += `<div class="modal-section">
+                    <div class="modal-section-title">Casos Vinculados</div>`;
+                
+                politicos.casos.forEach((caso, i) => {
+                    body += `
+                        <div style="background: var(--bg-dark); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                                <div>
+                                    <h4 style="margin-bottom: 0.25rem;">${caso.nombre}</h4>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">${caso.tipo}</span>
+                                </div>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">${caso.desc}</p>
+                            <div class="cita-text">
+                                "${caso.cita}"
+                                <div class="cita-source">📰 Fuente: ${caso.fuente}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                body += '</div>';
+            } else {
+                body += `
+                    <div class="modal-section">
+                        <div class="modal-section-title">Casos Vinculados</div>
+                        <div style="background: var(--bg-dark); border-radius: 12px; padding: 2rem; text-align: center; color: var(--text-secondary);">
+                            No hay casos registrados en nuestra base de datos
+                        </div>
+                    </div>
+                `;
+            }
+
+            body += `
+                <div class="modal-section">
+                    <div class="modal-section-title">Fuentes Oficiales</div>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <a href="https://www.pjud.cl" target="_blank" class="fuente-link">⚖️ Poder Judicial</a>
+                        <a href="https://www.fne.cl" target="_blank" class="fuente-link">📊 Fiscalía Nacional Económica</a>
+                        <a href="https://www.contraloria.cl" target="_blank" class="fuente-link">🔍 Contraloría</a>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalBody').innerHTML = body;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
