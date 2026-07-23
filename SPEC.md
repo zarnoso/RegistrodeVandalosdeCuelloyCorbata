@@ -403,10 +403,10 @@
 
 ### Fase 1: MVP (Semanas 1-4)
 - [x] Esqueleto del proyecto
-- [ ] Extraer lista de diputados y senadores
-- [ ] Base de datos con modelo Politicos
-- [ ] Frontend básico: lista y ficha
-- [ ] 10-20 casos de ejemplo (hardcoded)
+- [x] Extraer lista de diputados y senadores (scrapers implementados, pendiente ejecución/población real)
+- [x] Base de datos con modelo Politicos (SQLAlchemy models + migración pg_trgm)
+- [x] Frontend básico: lista y ficha — conectado a API real (`GET /api/politicos/`, `GET /api/politicos/{id}`), con fallback a datos de ejemplo si la API no responde
+- [ ] 10-20 casos de ejemplo (hardcoded) — quedan solo como fallback dev, falta poblar DB real
 
 ### Fase 2: Patrimonio (Semanas 5-8)
 - [ ] Integrar Infoprobidad (scraping declaraciones)
@@ -449,3 +449,8 @@
 2. **Derecho de rectificación**: Mecanismo para que políticos soliciten correcciones
 3. **Sin juicios de valor**: Solo hechos verificables con citas
 4. **Atribución clara**: Siempre linking a fuentes originales
+
+## Changelog de avance (bitácora automática)
+- 2026-07-23: fix seguridad — credencial Neon hardcodeada eliminada de config.py/.env.example (rotar password en Neon).
+- 2026-07-23: endpoint `GET /api/politicos/buscar/nombre/{nombre}` + índice pg_trgm (búsqueda tolerante a typos/tildes).
+- 2026-07-23: frontend conectado a API real (loadPoliticos/loadDetalle), fallback a datos hardcoded si no hay backend/DB.

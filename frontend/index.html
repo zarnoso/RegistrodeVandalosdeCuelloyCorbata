@@ -668,7 +668,12 @@
     </div>
 
     <script>
-        const politicos = [
+        const API_BASE = '/api/politicos';
+        let politicos = [];
+        let usingFallback = false;
+
+        // Datos hardcoded: solo fallback si la API no responde (dev sin backend/DB).
+        const politicosFallback = [
             {
                 id: 1,
                 nombre: "Juan Díaz",
@@ -818,6 +823,78 @@
             }
         ];
 
+        function mapEstadoRiesgo(estado) {
+            if (estado === 'alerta_roja') return { status: 'danger', statusText: 'Alerta' };
+            if (estado === 'alerta_naranja') return { status: 'warning', statusText: 'Investigado' };
+            return { status: 'clean', statusText: 'Sin Registros' };
+        }
+
+        function mapApiPolitico(p) {
+            const { status, statusText } = mapEstadoRiesgo(p.estado_riesgo);
+            return {
+                id: p.id,
+                nombre: p.nombre_completo,
+                rut: p.rut,
+                cargo: p.cargo || '',
+                partido: p.partido || '',
+                distrito: p.distrito || '',
+                region: p.region || '',
+                instituciones: p.institucion || '',
+                es_activo: p.es_activo,
+                status, statusText,
+                _numEventos: p.num_eventos || 0,
+                _numEmpresas: p.num_empresas || 0,
+                patrimonio: { empresas: [], acciones: [] }, // se completa al abrir la ficha
+                eventos: [] // se completa al abrir la ficha
+            };
+        }
+
+        async function loadPoliticos() {
+            try {
+                const res = await fetch(`${API_BASE}/`);
+                if (!res.ok) throw new Error(`API respondió ${res.status}`);
+                const data = await res.json();
+                const lista = Array.isArray(data) ? data : (data.items || data.results || []);
+                if (!lista.length) throw new Error('API sin datos');
+                politicos = lista.map(mapApiPolitico);
+                usingFallback = false;
+            } catch (err) {
+                console.warn('No se pudo cargar la API, usando datos de ejemplo:', err.message);
+                politicos = politicosFallback;
+                usingFallback = true;
+            }
+            renderList();
+        }
+
+        async function loadDetalle(id) {
+            if (usingFallback) return politicos.find(x => String(x.id) === String(id));
+            try {
+                const res = await fetch(`${API_BASE}/${id}`);
+                if (!res.ok) throw new Error(`API respondió ${res.status}`);
+                const d = await res.json();
+                const base = mapApiPolitico(d);
+                base.patrimonio.empresas = (d.patrimonios || []).map(pat => ({
+                    nombre: pat.nombre_empresa || pat.nombre,
+                    rol: pat.rol || pat.cargo_empresa || '',
+                    participacion: pat.porcentaje_participacion ? `${pat.porcentaje_participacion}%` : '',
+                    estado: pat.estado || 'Activa'
+                }));
+                base.eventos = (d.eventos || []).map(evt => ({
+                    fecha: evt.fecha_inicio || evt.fecha || '',
+                    caso: evt.caso_nombre || evt.titulo || 'Evento',
+                    tipo: evt.tipo_alerta || evt.tipo || '',
+                    estado: evt.estado_actual || evt.estado || '',
+                    resumen: evt.resumen || '',
+                    fuente: evt.fuente || '',
+                    url: evt.url_noticia || evt.url || '#'
+                }));
+                return base;
+            } catch (err) {
+                console.warn('No se pudo cargar ficha desde API:', err.message);
+                return politicos.find(x => String(x.id) === String(id)) || null;
+            }
+        }
+
         function getInitials(nombre) {
             return nombre.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
         }
@@ -845,7 +922,7 @@
             }
 
             container.innerHTML = filtered.map(p => `
-                <div class="politician-card" onclick="openModal(${p.id})">
+                <div class="politician-card" onclick="openModal('${p.id}')">
                     <div class="politician-avatar">${getInitials(p.nombre)}</div>
                     <div class="politician-info">
                         <div class="politician-name">${p.nombre} <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">${p.rut}</span></div>
@@ -858,8 +935,8 @@
             `).join('');
         }
 
-        function openModal(id) {
-            const p = politicos.find(x => x.id === id);
+        async function openModal(id) {
+            const p = await loadDetalle(id);
             if (!p) return;
 
             document.getElementById('modalAvatar').textContent = getInitials(p.nombre);
@@ -927,7 +1004,7 @@
             if (e.key === 'Escape') closeModal();
         });
 
-        renderList();
+        loadPoliticos();
     </script>
 </body>
 </html>
