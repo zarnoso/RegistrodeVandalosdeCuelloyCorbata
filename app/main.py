@@ -6,15 +6,19 @@ import os
 from app.api.routes import router as politicos_router
 from app.core.database import engine, Base
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
 # Create FastAPI app
 app = FastAPI(
     title="Chile Transparente API",
     description="API para el Radar de Transparencia Política de Chile",
     version="1.0.0"
 )
+
+
+@app.on_event("startup")
+def create_tables():
+    """Crea tablas al arrancar la app (no al importar el módulo, para poder testear)."""
+    Base.metadata.create_all(bind=engine)
+
 
 # CORS: API pública de solo lectura, sin auth por cookies -> no se necesitan credentials.
 # allow_origins=["*"] + allow_credentials=True es inválido para navegadores (rechazado por spec).

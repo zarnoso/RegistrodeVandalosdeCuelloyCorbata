@@ -15,3 +15,6 @@ venv/
 # Datos generados
 data/*.json
 !data/ejemplo_*.json
+
+# Tests
+.pytest_cache/

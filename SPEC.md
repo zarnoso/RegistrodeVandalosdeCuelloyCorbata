@@ -460,3 +460,6 @@
 - 2026-07-23: RUTs ficticios en populate_database.py confirmados como data de prueba intencional (no se tocan).
 - 2026-07-23: fix CORS (allow_origins=* + allow_credentials=True es inválido en navegadores; se quitó credentials ya que no hay auth por cookies).
 - 2026-07-23: README actualizado (endpoint buscar/nombre, paso de migración pg_trgm, typo en portugués). requirements.txt: quitadas asyncpg/alembic (no usadas).
+- 2026-07-23: [#1] frontend: búsqueda server-side con debounce (300ms) vía `GET /api/politicos/?busqueda=`, en vez de filtrar solo los primeros 100 cargados.
+- 2026-07-23: [#4] 12 tests pytest (PoliticosService + smoke test de sintaxis/imports) contra Postgres real de test — detectaron bug real: la búsqueda por nombre no toleraba tildes pese a lo prometido (ILIKE plano). Fix: extensión `unaccent` + query actualizada.
+- 2026-07-23: fix arquitectura — `Base.metadata.create_all` se movió de import-time a startup event de FastAPI (importar `app` tocaba la DB real, imposible de testear).

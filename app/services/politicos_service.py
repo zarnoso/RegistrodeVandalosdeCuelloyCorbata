@@ -23,8 +23,9 @@ class PoliticosService:
             query = query.filter(Politico.institucion == institucion)
         
         if busqueda:
+            # unaccent() para tolerar tildes (ej. "maria" encuentra "María")
             query = query.filter(
-                Politico.nombre_completo.ilike(f"%{busqueda}%")
+                func.unaccent(Politico.nombre_completo).ilike(func.unaccent(f"%{busqueda}%"))
             )
         
         return query.order_by(Politico.nombre_completo).offset(skip).limit(limit).all()

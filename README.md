@@ -52,6 +52,21 @@ chile-transparencia/
 └── .env
 ```
 
+## 🧪 Tests
+
+Requiere una Postgres real de test (el esquema usa UUID nativo de Postgres,
+incompatible con SQLite) — nunca apunta a la DB de producción.
+
+```bash
+pip install -r requirements-dev.txt
+
+# Postgres local desechable para tests (ejemplo)
+createdb chile_transparente_test
+
+export TEST_DATABASE_URL="postgresql://usuario:password@localhost:5432/chile_transparente_test"
+pytest tests/ -v
+```
+
 ## 🌐 API Endpoints
 
 | Método | Endpoint | Descripción |
