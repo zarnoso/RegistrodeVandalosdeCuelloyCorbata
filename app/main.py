@@ -2,10 +2,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import os
 
 from app.api.routes import router as politicos_router
 from app.core.database import engine, Base
+from app.core.limiter import limiter
 
 
 @asynccontextmanager
@@ -22,6 +25,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # CORS: API pública de solo lectura, sin auth por cookies -> no se necesitan credentials.

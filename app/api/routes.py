@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.services.politicos_service import PoliticosService
 from app.schemas import PoliticoResponse, PoliticoDetailResponse, StatsResponse
 
@@ -11,7 +12,9 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[PoliticoResponse])
+@limiter.limit("60/minute")
 def get_politicos(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     partido: Optional[str] = None,
@@ -100,7 +103,8 @@ def get_politico(politico_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.get("/buscar/rut/{rut}")
-def buscar_por_rut(rut: str, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def buscar_por_rut(request: Request, rut: str, db: Session = Depends(get_db)):
     """Busca un político por RUT."""
     politico = PoliticosService.get_by_rut(db, rut)
     
@@ -111,7 +115,8 @@ def buscar_por_rut(rut: str, db: Session = Depends(get_db)):
 
 
 @router.get("/buscar/nombre/{nombre}")
-def buscar_por_nombre(nombre: str, limit: int = Query(5, ge=1, le=20), db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def buscar_por_nombre(request: Request, nombre: str, limit: int = Query(5, ge=1, le=20), db: Session = Depends(get_db)):
     """Busca políticos por nombre (tolerante a typos/tildes vía pg_trgm).
     Pensado para gente que no tiene el RUT a mano: solo escribe el nombre
     y recibe si el político tiene o no problemas registrados (estado_riesgo).

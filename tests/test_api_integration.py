@@ -96,3 +96,12 @@ def test_buscar_por_rut(client, db_session):
 def test_buscar_por_rut_inexistente_404(client):
     res = client.get("/api/politicos/buscar/rut/0.000.000-0")
     assert res.status_code == 404
+
+
+def test_rate_limit_buscar_rut(client):
+    # límite: 30/minute. Se dispara la 31.
+    for _ in range(30):
+        client.get("/api/politicos/buscar/rut/0.000.000-0")
+
+    res = client.get("/api/politicos/buscar/rut/0.000.000-0")
+    assert res.status_code == 429

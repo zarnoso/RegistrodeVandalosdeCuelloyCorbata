@@ -465,3 +465,4 @@
 - 2026-07-23: fix arquitectura — `Base.metadata.create_all` se movió de import-time a startup event de FastAPI (importar `app` tocaba la DB real, imposible de testear).
 - 2026-07-23: main.py migrado de `@app.on_event("startup")` (deprecado) a `lifespan` handler.
 - 2026-07-23: 8 tests de integración HTTP (TestClient) para /health, /api/politicos/, /api/politicos/{id}, /buscar/rut. Suite completa: 20/20 tests OK.
+- 2026-07-23: [#3] rate limiting (slowapi) en endpoints públicos sin auth: /api/politicos/ (60/min), /buscar/rut y /buscar/nombre (30/min). Test que confirma 429 al superar el límite. Suite: 21/21 OK.
