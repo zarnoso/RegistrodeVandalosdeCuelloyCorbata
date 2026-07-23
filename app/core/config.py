@@ -3,7 +3,7 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://neondb_owner:npg_OJd54TDzUumx@ep-dark-sunset-ah922o3v-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+    DATABASE_URL: str  # obligatorio: definir en .env, sin valor por defecto
     OPENAI_API_KEY: str = ""
     
     class Config:
