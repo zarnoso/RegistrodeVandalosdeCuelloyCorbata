@@ -6,7 +6,7 @@ Extrae la lista completa de diputados y senadores desde fuentes oficiales
 import requests
 from bs4 import BeautifulSoup
 import json
-from typing import List, Dict, Optional
+from typing import List, Dict
 import time
 import re
 

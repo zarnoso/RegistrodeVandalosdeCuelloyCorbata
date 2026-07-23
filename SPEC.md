@@ -454,3 +454,7 @@
 - 2026-07-23: fix seguridad — credencial Neon hardcodeada eliminada de config.py/.env.example (rotar password en Neon).
 - 2026-07-23: endpoint `GET /api/politicos/buscar/nombre/{nombre}` + índice pg_trgm (búsqueda tolerante a typos/tildes).
 - 2026-07-23: frontend conectado a API real (loadPoliticos/loadDetalle), fallback a datos hardcoded si no hay backend/DB.
+- 2026-07-23: fix bug — 02_scraper_patrimonio.py tenía SyntaxError (dict mal anidado en lista), no ejecutaba nunca.
+- 2026-07-23: fix bug — frontend mapeaba mal empresas de la ficha (venían anidadas en patrimonios[].empresas con razon_social, no nombre_empresa).
+- 2026-07-23: limpieza imports/variables muertas (pyflakes) en 8 archivos. Pendiente (bajo riesgo, stubs de scraping incompletos): contenido/data/soup sin usar en 02_scraper_patrimonio.py y scraper_chile.py — requieren acceso real a los sitios para completarse.
+- 2026-07-23: RUTs ficticios en populate_database.py confirmados como data de prueba intencional (no se tocan).

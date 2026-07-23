@@ -873,12 +873,14 @@
                 if (!res.ok) throw new Error(`API respondió ${res.status}`);
                 const d = await res.json();
                 const base = mapApiPolitico(d);
-                base.patrimonio.empresas = (d.patrimonios || []).map(pat => ({
-                    nombre: pat.nombre_empresa || pat.nombre,
-                    rol: pat.rol || pat.cargo_empresa || '',
-                    participacion: pat.porcentaje_participacion ? `${pat.porcentaje_participacion}%` : '',
-                    estado: pat.estado || 'Activa'
-                }));
+                base.patrimonio.empresas = (d.patrimonios || []).flatMap(pat =>
+                    (pat.empresas || []).map(emp => ({
+                        nombre: emp.razon_social || emp.rut_empresa || 'Empresa sin nombre',
+                        rol: emp.rol || '',
+                        participacion: emp.porcentaje_participacion ? `${emp.porcentaje_participacion}%` : '',
+                        estado: emp.estado || 'Activa'
+                    }))
+                );
                 base.eventos = (d.eventos || []).map(evt => ({
                     fecha: evt.fecha_inicio || evt.fecha || '',
                     caso: evt.caso_nombre || evt.titulo || 'Evento',

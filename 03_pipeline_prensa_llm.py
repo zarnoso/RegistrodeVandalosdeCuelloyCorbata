@@ -8,10 +8,9 @@ from bs4 import BeautifulSoup
 import feedparser
 import json
 from typing import List, Dict, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 from pydantic import BaseModel, Field
-from typing import List
 from openai import OpenAI
 import os
 
@@ -377,8 +376,6 @@ def main():
     print("=" * 60)
     print("Chile Transparente - Pipeline de Prensa")
     print("=" * 60)
-    
-    pipeline = PipelinePrensa()
     
     # Ejemplo de ejecución (sin LLM para demo)
     print("\n📋 Fuentes configuradas:")

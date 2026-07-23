@@ -4,7 +4,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.models import Politico, Evento, Empresa, Patrimonio
-from app.schemas import PoliticoBase, PoliticoResponse, StatsResponse
+from app.schemas import PoliticoBase, StatsResponse
 
 
 class PoliticosService:

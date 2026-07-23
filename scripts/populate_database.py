@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import date
-import uuid
 
 from app.core.config import settings
 from app.models import Politico, Evento, Patrimonio, Empresa

@@ -244,13 +244,13 @@ def main():
     
     ejemplo = {
         "descripcion": "Estructura de patrimonio según Infoprobidad",
-        "campos_esperados": [
-            "rut_declarante",
-            "nombre_completo", 
-            "cargo",
-            "institucion",
-            "periodo_declaracion",
-            "patrimonio_total",
+        "campos_esperados": {
+            "rut_declarante": "12.345.678-9",
+            "nombre_completo": "Nombre Apellido",
+            "cargo": "Cargo",
+            "institucion": "Institución",
+            "periodo_declaracion": "YYYY",
+            "patrimonio_total": 0,
             "empresas": [
                 {
                     "rut_empresa": "76.XXX.XXX-X",
@@ -291,9 +291,10 @@ def main():
                     "acreedor": "Nombre Acreedor"
                 }
             ],
-            "fuente": "infoprobidad.cl",
-            "url_detalle": "https://..."
-        }
+        },
+        "fuente": "infoprobidad.cl",
+        "url_detalle": "https://..."
+    }
     
     with open('data/ejemplo_patrimonio.json', 'w', encoding='utf-8') as f:
         json.dump(ejemplo, f, ensure_ascii=False, indent=2)

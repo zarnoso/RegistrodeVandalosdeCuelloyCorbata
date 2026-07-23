@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.services.politicos_service import PoliticosService
-from app.schemas import PoliticoResponse, PoliticoDetailResponse, StatsResponse, EventoResponse
+from app.schemas import PoliticoResponse, PoliticoDetailResponse, StatsResponse
 
 router = APIRouter()
 

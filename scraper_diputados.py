@@ -6,7 +6,7 @@ Extrae la lista de diputados y senadores actuales desde el portal de Datos Abier
 import requests
 from bs4 import BeautifulSoup
 import json
-from typing import List, Dict, Optional
+from typing import List, Dict
 import time
 
 
