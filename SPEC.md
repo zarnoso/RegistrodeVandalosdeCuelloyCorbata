@@ -463,3 +463,5 @@
 - 2026-07-23: [#1] frontend: búsqueda server-side con debounce (300ms) vía `GET /api/politicos/?busqueda=`, en vez de filtrar solo los primeros 100 cargados.
 - 2026-07-23: [#4] 12 tests pytest (PoliticosService + smoke test de sintaxis/imports) contra Postgres real de test — detectaron bug real: la búsqueda por nombre no toleraba tildes pese a lo prometido (ILIKE plano). Fix: extensión `unaccent` + query actualizada.
 - 2026-07-23: fix arquitectura — `Base.metadata.create_all` se movió de import-time a startup event de FastAPI (importar `app` tocaba la DB real, imposible de testear).
+- 2026-07-23: main.py migrado de `@app.on_event("startup")` (deprecado) a `lifespan` handler.
+- 2026-07-23: 8 tests de integración HTTP (TestClient) para /health, /api/politicos/, /api/politicos/{id}, /buscar/rut. Suite completa: 20/20 tests OK.

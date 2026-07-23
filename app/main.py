@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -6,18 +7,21 @@ import os
 from app.api.routes import router as politicos_router
 from app.core.database import engine, Base
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Crea tablas al arrancar la app (no al importar el módulo, para poder testear)."""
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Chile Transparente API",
     description="API para el Radar de Transparencia Política de Chile",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-def create_tables():
-    """Crea tablas al arrancar la app (no al importar el módulo, para poder testear)."""
-    Base.metadata.create_all(bind=engine)
 
 
 # CORS: API pública de solo lectura, sin auth por cookies -> no se necesitan credentials.
