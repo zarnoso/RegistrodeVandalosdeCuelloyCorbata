@@ -108,3 +108,18 @@ def buscar_por_rut(rut: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Político no encontrado")
     
     return {"id": str(politico.id), "nombre_completo": politico.nombre_completo}
+
+
+@router.get("/buscar/nombre/{nombre}")
+def buscar_por_nombre(nombre: str, limit: int = Query(5, ge=1, le=20), db: Session = Depends(get_db)):
+    """Busca políticos por nombre (tolerante a typos/tildes vía pg_trgm).
+    Pensado para gente que no tiene el RUT a mano: solo escribe el nombre
+    y recibe si el político tiene o no problemas registrados (estado_riesgo).
+    Si hay homónimos, devuelve varios resultados con cargo/región/partido
+    para desambiguar."""
+    politicos = PoliticosService.get_all(db, skip=0, limit=limit, busqueda=nombre)
+
+    if not politicos:
+        raise HTTPException(status_code=404, detail="No se encontraron políticos con ese nombre")
+
+    return PoliticosService.enrich_with_counts(db, politicos)
