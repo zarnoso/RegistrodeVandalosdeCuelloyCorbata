@@ -16,13 +16,16 @@ cp .env.example .env
 # 3. Instalar dependencias
 pip install -r requirements.txt
 
-# 4. Poblar base de datos
+# 4. Aplicar migración (búsqueda tolerante por nombre)
+psql $DATABASE_URL -f scripts/migrations/001_add_pg_trgm_busqueda.sql
+
+# 5. Poblar base de datos
 python scripts/populate_database.py
 
-# 5. Ejecutar API
+# 6. Ejecutar API
 uvicorn app.main:app --reload
 
-# 6. Abrir en navegador
+# 7. Abrir en navegador
 # http://localhost:8000/docs (API docs)
 # http://localhost:8000 (Frontend)
 ```
@@ -42,7 +45,7 @@ chile-transparencia/
 │   └── main.py               # FastAPI app
 ├── scripts/
 │   ├── populate_database.py   # Poblar BD con datos
-│   └── scraper_chile.py      # Extraer dados reais
+│   └── scraper_chile.py      # Extraer datos reales
 ├── frontend/
 │   └── index.html            # Frontend demo
 ├── requirements.txt
@@ -57,6 +60,7 @@ chile-transparencia/
 | GET | `/api/politicos/{id}` | Detalle de político |
 | GET | `/api/politicos/stats` | Estadísticas |
 | GET | `/api/politicos/buscar/rut/{rut}` | Buscar por RUT |
+| GET | `/api/politicos/buscar/nombre/{nombre}` | Buscar por nombre (tolerante a typos/tildes) |
 
 ## 🗄️ Base de Datos (Neon PostgreSQL)
 

@@ -16,11 +16,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS
+# CORS: API pública de solo lectura, sin auth por cookies -> no se necesitan credentials.
+# allow_origins=["*"] + allow_credentials=True es inválido para navegadores (rechazado por spec).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

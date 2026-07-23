@@ -458,3 +458,5 @@
 - 2026-07-23: fix bug — frontend mapeaba mal empresas de la ficha (venían anidadas en patrimonios[].empresas con razon_social, no nombre_empresa).
 - 2026-07-23: limpieza imports/variables muertas (pyflakes) en 8 archivos. Pendiente (bajo riesgo, stubs de scraping incompletos): contenido/data/soup sin usar en 02_scraper_patrimonio.py y scraper_chile.py — requieren acceso real a los sitios para completarse.
 - 2026-07-23: RUTs ficticios en populate_database.py confirmados como data de prueba intencional (no se tocan).
+- 2026-07-23: fix CORS (allow_origins=* + allow_credentials=True es inválido en navegadores; se quitó credentials ya que no hay auth por cookies).
+- 2026-07-23: README actualizado (endpoint buscar/nombre, paso de migración pg_trgm, typo en portugués). requirements.txt: quitadas asyncpg/alembic (no usadas).
