@@ -1,5 +1,7 @@
 # Chile Transparente - Registro de Vándalos de Cuello y Corbata
 
+![Tests](https://github.com/zarnoso/Registro-de-V-ndalos-de-Cuello-y-Corbata/actions/workflows/tests.yml/badge.svg)
+
 **Radar de Transparencia Política - Detectar a los políticos involucrados en corrupción, colusiones y problemas legales.**
 
 ## 🚀 Quick Start
