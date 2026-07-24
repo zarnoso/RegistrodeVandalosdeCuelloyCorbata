@@ -469,3 +469,4 @@
 - 2026-07-23: /health ahora ejecuta SELECT 1 real contra la DB (antes era estático, no detectaba caídas de Neon); 503 si falla.
 - 2026-07-23: limpieza deprecations: config.py (SettingsConfigDict), database.py (sqlalchemy.orm.declarative_base), schemas.py (ConfigDict en 4 schemas). Queda pendiente (bajo riesgo, no se toca) datetime.utcnow() en 6 columnas de models.py — cambiarlo altera semántica naive/aware de timestamps ya almacenados.
 - 2026-07-23: CI (GitHub Actions) — `.github/workflows/tests.yml`: corre la suite completa (21 tests) contra Postgres real como servicio, en cada push/PR a main. Badge de estado en README.
+- 2026-07-23: fix CI real — el primer run falló: `pytest` (sin `-m`) no agrega el repo al sys.path, `app` no se encontraba. Agregado `pytest.ini` (`pythonpath = .`). Reproducido y verificado en venv limpio idéntico a CI antes de pushear.
