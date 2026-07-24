@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
@@ -18,8 +18,7 @@ class EmpresaBase(BaseModel):
 class EmpresaResponse(EmpresaBase):
     id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EventoBase(BaseModel):
@@ -35,8 +34,7 @@ class EventoBase(BaseModel):
 class EventoResponse(EventoBase):
     id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PoliticoBase(BaseModel):
@@ -58,8 +56,7 @@ class PoliticoResponse(PoliticoBase):
     num_empresas: int = 0
     estado_riesgo: str = "sin_registros"
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PoliticoDetailResponse(PoliticoBase):
@@ -70,8 +67,7 @@ class PoliticoDetailResponse(PoliticoBase):
     eventos: List[EventoResponse] = []
     empresas: List[EmpresaResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============ Stats Schemas ============

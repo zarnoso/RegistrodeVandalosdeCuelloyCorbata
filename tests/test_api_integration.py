@@ -34,6 +34,8 @@ def _crear_politico(db, **overrides):
 def test_health(client):
     res = client.get("/health")
     assert res.status_code == 200
+    assert res.json()["status"] == "healthy"
+    assert res.json()["database"] == "ok"
 
 
 def test_lista_politicos_vacia(client):
