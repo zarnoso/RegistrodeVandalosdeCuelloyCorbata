@@ -20,9 +20,14 @@ pip install -r requirements.txt
 
 # 4. Aplicar migración (búsqueda tolerante por nombre)
 psql $DATABASE_URL -f scripts/migrations/001_add_pg_trgm_busqueda.sql
+psql $DATABASE_URL -f scripts/migrations/002_grafo_fuentes_som.sql
 
-# 5. Poblar base de datos
-python scripts/populate_database.py
+# Estos comandos se ejecutan en una terminal, no en el SQL Editor de Neon.
+
+# 5. Opcional: cargar datos ficticios en una DB local de demo.
+# El script borra sus tablas y se niega a operar sobre una DB que no parezca
+# de desarrollo/pruebas.
+ALLOW_DESTRUCTIVE_DEMO_DATA=true python scripts/populate_database.py
 
 # 6. Ejecutar API
 uvicorn app.main:app --reload
@@ -35,6 +40,28 @@ uvicorn app.main:app --reload
 ## 📁 Estructura del Proyecto
 
 ```
+### Neon SQL Editor
+
+El SQL Editor de Neon acepta únicamente SQL. Ejecuta por separado el contenido de
+`scripts/migrations/001_add_pg_trgm_busqueda.sql` y luego
+`scripts/migrations/002_grafo_fuentes_som.sql`. No pegues allí comandos `psql`,
+`python` ni variables PowerShell como `$env:DATABASE_URL`.
+
+### Despliegue en Vercel
+
+El repositorio incluye `api/index.py` y `vercel.json`, por lo que el frontend y
+la API se despliegan juntos. En la pantalla **New Project** usa:
+
+- **Framework preset:** FastAPI
+- **Root directory:** `./`
+- **Build command:** dejar vacío
+- **Output directory:** dejar vacío
+- **Environment variable:** `DATABASE_URL` (la cadena de Neon, solo en Vercel)
+
+No agregues `OPENAI_API_KEY` salvo que actives una función que la necesite. La
+interfaz usa rutas relativas (`/api`), así que no requiere una URL de backend
+separada.
+
 chile-transparencia/
 ├── app/
 │   ├── api/routes.py          # Endpoints de la API
@@ -56,18 +83,36 @@ chile-transparencia/
 
 ## 🧪 Tests
 
-Requiere una Postgres real de test (el esquema usa UUID nativo de Postgres,
-incompatible con SQLite) — nunca apunta a la DB de producción.
+La suite puede ejecutarse rápidamente con SQLite o contra una rama PostgreSQL
+de pruebas. Nunca utiliza `DATABASE_URL` de producción.
 
 ```bash
 pip install -r requirements-dev.txt
 
-# Postgres local desechable para tests (ejemplo)
-createdb chile_transparente_test
-
-export TEST_DATABASE_URL="postgresql://usuario:password@localhost:5432/chile_transparente_test"
+# Opción rápida y local
+export TEST_DATABASE_URL="sqlite:///./data/chile_transparente_test.db"
 pytest tests/ -v
 ```
+
+## 🎬 Demo local completa
+
+La demo usa SQLite y datos 100% ficticios. No necesita cuentas ni claves:
+
+```bash
+pip install -r requirements-demo.txt
+python scripts/run_demo.py
+```
+
+Abre `http://127.0.0.1:8000`. La API, el grafo, las fichas y el SOM funcionan
+contra la misma base demo persistente.
+
+En Windows también puedes ejecutar directamente:
+
+```powershell
+.\demo.ps1
+```
+
+El script crea un entorno aislado la primera vez y luego inicia la demo.
 
 ## 🌐 API Endpoints
 
@@ -78,6 +123,30 @@ pytest tests/ -v
 | GET | `/api/politicos/stats` | Estadísticas |
 | GET | `/api/politicos/buscar/rut/{rut}` | Buscar por RUT |
 | GET | `/api/politicos/buscar/nombre/{nombre}` | Buscar por nombre (tolerante a typos/tildes) |
+| GET | `/api/politicos/grafo` | Nodos y relaciones explícitas para el grafo |
+| GET | `/api/politicos/analitica/som` | Vectores normalizados para el mapa SOM |
+| GET | `/api/fuentes` | Catálogo de fuentes y política de procedencia |
+
+### Recolección oficial a staging
+
+La recolección nunca publica registros automáticamente:
+
+```bash
+python scripts/import_fuentes_oficiales.py --dry-run
+python scripts/import_fuentes_oficiales.py --source bcn
+python scripts/import_fuentes_oficiales.py --source senado
+```
+
+Los resultados se guardan en `data/staging_fuentes_oficiales.json` para revisión
+humana antes de cualquier importación a la base principal.
+
+### Fuentes judiciales y normativas
+
+- PJUD Transparencia se usa para canales oficiales, sentencias y contraste.
+- LeyChile se usa para normativa vigente y contexto jurídico.
+- La integración externa de Khipu permanece desactivada hasta contar con
+  credenciales, revisión contractual y reglas de protección de datos.
+- Ningún resultado judicial se publica sin contraste oficial y revisión humana.
 
 ## 🗄️ Base de Datos (Neon PostgreSQL)
 

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, Numeric, Date
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Uuid as UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -65,6 +65,9 @@ class Empresa(Base):
 
     # Relationships
     patrimonio = relationship("Patrimonio", back_populates="empresas")
+    familiares = relationship(
+        "FamiliarEmpresa", back_populates="empresa", cascade="all, delete-orphan"
+    )
 
 
 class Evento(Base):
@@ -82,10 +85,15 @@ class Evento(Base):
     url_noticia = Column(Text)
     cita_textual = Column(Text)
     fuente = Column(String(100))
+    url_oficial = Column(Text)
+    rit_ruc = Column(String(100))
+    tribunal = Column(String(255))
     confianza = Column(String(20))  # ALTA, MEDIA, BAJA
     procesada_ia = Column(Boolean, default=False)
     verificada_humano = Column(Boolean, default=False)
+    fecha_verificacion = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     politico = relationship("Politico", back_populates="eventos")
@@ -99,7 +107,41 @@ class Familiar(Base):
     parentesco = Column(String(50))
     nombre_completo = Column(String(255))
     rut = Column(String(12))
+    fuente = Column(String(100))
+    url_fuente = Column(Text)
+    verificada_humano = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     politico = relationship("Politico", back_populates="familiares")
+    empresas = relationship(
+        "FamiliarEmpresa", back_populates="familiar", cascade="all, delete-orphan"
+    )
+
+
+class FamiliarEmpresa(Base):
+    """Vínculo atribuible entre un familiar y una empresa declarada."""
+
+    __tablename__ = "familiares_empresas"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    familiar_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("familiares.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    empresa_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("empresas.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    rol_familiar = Column(String(100))
+    vinculo_politico = Column(String(255))
+    fuente = Column(String(100))
+    url_fuente = Column(Text)
+    verificada_humano = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    familiar = relationship("Familiar", back_populates="empresas")
+    empresa = relationship("Empresa", back_populates="familiares")

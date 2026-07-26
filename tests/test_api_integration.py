@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.core.database import get_db
-from app.models import Politico, Evento
+from app.models import Politico, Evento, Familiar
 
 
 @pytest.fixture
@@ -36,6 +36,44 @@ def test_health(client):
     assert res.status_code == 200
     assert res.json()["status"] == "healthy"
     assert res.json()["database"] == "ok"
+
+
+def test_catalogo_fuentes_distingue_oficiales_y_secundarias(client):
+    res = client.get("/api/fuentes")
+
+    assert res.status_code == 200
+    data = res.json()
+    assert any(
+        fuente["id"] == "camara_datos_abiertos"
+        and fuente["autoridad"] == "oficial"
+        for fuente in data["fuentes"]
+    )
+    assert any(
+        fuente["id"] == "senado_listado"
+        and fuente["autoridad"] == "oficial"
+        and fuente["automatizable"] is True
+        for fuente in data["fuentes"]
+    )
+    assert any(
+        fuente["id"] == "conocelos"
+        and fuente["autoridad"] == "secundaria"
+        and fuente["automatizable"] is False
+        for fuente in data["fuentes"]
+    )
+    assert any(
+        fuente["id"] == "pjud_transparencia"
+        and fuente["autoridad"] == "oficial"
+        for fuente in data["fuentes"]
+    )
+    assert any(
+        fuente["id"] == "khipu_pjud_causes"
+        and fuente["autoridad"] == "externa"
+        and fuente["automatizable"] is False
+        and fuente["requiere_credenciales"] is True
+        for fuente in data["fuentes"]
+    )
+    assert data["politica"]["publicacion_automatica"] is False
+    assert data["politica"]["causas_requieren_contraste_pjud"] is True
 
 
 def test_lista_politicos_vacia(client):
@@ -98,6 +136,72 @@ def test_buscar_por_rut(client, db_session):
 def test_buscar_por_rut_inexistente_404(client):
     res = client.get("/api/politicos/buscar/rut/0.000.000-0")
     assert res.status_code == 404
+
+
+def test_buscar_por_nombre_no_es_interceptado_por_ruta_uuid(client, db_session):
+    _crear_politico(db_session, rut="8.888.888-8", nombre_completo="María González")
+
+    res = client.get("/api/politicos/buscar/nombre/maria%20gonsalez")
+
+    assert res.status_code == 200
+    assert res.json()[0]["nombre_completo"] == "María González"
+
+
+def test_grafo_incluye_relacion_familiar(client, db_session):
+    p = _crear_politico(db_session, rut="7.777.777-7")
+    familiar = Familiar(
+        politico_id=p.id,
+        parentesco="cónyuge",
+        nombre_completo="Persona Familiar",
+        fuente="Declaración pública",
+        verificada_humano=True,
+    )
+    db_session.add(familiar)
+    db_session.commit()
+
+    res = client.get("/api/politicos/grafo")
+
+    assert res.status_code == 200
+    data = res.json()
+    assert any(node["tipo"] == "familiar" for node in data["nodes"])
+    assert any(edge["tipo"] == "familiar_de" for edge in data["edges"])
+
+
+def test_som_entrega_vectores_normalizados(client, db_session):
+    _crear_politico(db_session, rut="6.666.666-6")
+    _crear_politico(
+        db_session,
+        rut="5.555.555-5",
+        nombre_completo="Segundo Perfil",
+    )
+
+    res = client.get("/api/politicos/analitica/som")
+
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["items"]) == 2
+    assert len(data["dimensions"]) == len(data["items"][0]["normalized"])
+    assert all(0 <= value <= 1 for value in data["items"][0]["normalized"])
+
+
+def test_detalle_incluye_fuente_de_familiar(client, db_session):
+    p = _crear_politico(db_session, rut="4.444.444-4")
+    db_session.add(Familiar(
+        politico_id=p.id,
+        parentesco="hermana",
+        nombre_completo="Persona Relacionada",
+        fuente="Declaración pública",
+        url_fuente="https://example.test/declaracion",
+        verificada_humano=True,
+    ))
+    db_session.commit()
+
+    res = client.get(f"/api/politicos/{p.id}")
+
+    assert res.status_code == 200
+    familiar = res.json()["familiares"][0]
+    assert familiar["fuente"] == "Declaración pública"
+    assert familiar["verificada_humano"] is True
 
 
 def test_rate_limit_buscar_rut(client):

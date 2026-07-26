@@ -1,15 +1,15 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import text
-from sqlalchemy.orm import Session
 import os
 
 from app.api.routes import router as politicos_router
-from app.core.database import engine, Base, get_db
+from app.api.source_routes import router as sources_router
+from app.core.database import engine, Base
 from app.core.limiter import limiter
 
 
@@ -49,10 +49,14 @@ if os.path.exists(frontend_path):
 
 # Include routers
 app.include_router(politicos_router, prefix="/api/politicos", tags=["Políticos"])
+app.include_router(sources_router, prefix="/api", tags=["Fuentes"])
 
 
 @app.get("/")
 def root():
+    frontend_index = os.path.join(frontend_path, "index.html")
+    if os.path.exists(frontend_index):
+        return FileResponse(frontend_index)
     return {
         "message": "Chile Transparente API",
         "version": "1.0.0",
@@ -61,18 +65,16 @@ def root():
 
 
 @app.get("/health")
-def health(db: Session = Depends(get_db)):
-    try:
-        db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "ok"}
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database unavailable: {e}")
+def health():
+    return {
+        "status": "healthy",
+        "mode": "demo" if os.environ.get("DEMO_MODE", "").lower() == "true" else "production",
+    }
 
 
 # Serve frontend
 @app.get("/index.html")
 async def serve_frontend():
-    from fastapi.responses import FileResponse
     frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
     if os.path.exists(frontend_index):
         return FileResponse(frontend_index)

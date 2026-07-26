@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
@@ -18,7 +18,8 @@ class EmpresaBase(BaseModel):
 class EmpresaResponse(EmpresaBase):
     id: UUID
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 class EventoBase(BaseModel):
@@ -29,12 +30,19 @@ class EventoBase(BaseModel):
     estado_actual: Optional[str] = None
     url_noticia: Optional[str] = None
     fuente: Optional[str] = None
+    url_oficial: Optional[str] = None
+    rit_ruc: Optional[str] = None
+    tribunal: Optional[str] = None
+    confianza: Optional[str] = None
+    procesada_ia: bool = False
+    verificada_humano: bool = False
 
 
 class EventoResponse(EventoBase):
     id: UUID
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 class PoliticoBase(BaseModel):
@@ -54,20 +62,24 @@ class PoliticoResponse(PoliticoBase):
     created_at: datetime
     num_eventos: int = 0
     num_empresas: int = 0
+    num_familiares: int = 0
     estado_riesgo: str = "sin_registros"
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 class PoliticoDetailResponse(PoliticoBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
-    patrimonios: List[dict] = []
-    eventos: List[EventoResponse] = []
-    empresas: List[EmpresaResponse] = []
+    patrimonios: List[dict] = Field(default_factory=list)
+    eventos: List[EventoResponse] = Field(default_factory=list)
+    empresas: List[EmpresaResponse] = Field(default_factory=list)
+    familiares: List[dict] = Field(default_factory=list)
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 # ============ Stats Schemas ============
@@ -79,3 +91,39 @@ class StatsResponse(BaseModel):
     politicos_con_eventos: int
     por_estado: dict
     por_tipo_alerta: dict
+
+
+class GraphNode(BaseModel):
+    id: str
+    tipo: str
+    etiqueta: str
+    metadata: dict = Field(default_factory=dict)
+
+
+class GraphEdge(BaseModel):
+    id: str
+    origen: str
+    destino: str
+    tipo: str
+    metadata: dict = Field(default_factory=dict)
+
+
+class GraphResponse(BaseModel):
+    nodes: List[GraphNode]
+    edges: List[GraphEdge]
+    total_politicos: int
+    truncado: bool = False
+
+
+class SomItem(BaseModel):
+    politico_id: UUID
+    nombre_completo: str
+    metadata: dict
+    features: dict[str, float]
+    normalized: List[float]
+
+
+class SomResponse(BaseModel):
+    dimensions: List[str]
+    items: List[SomItem]
+    metodologia: str

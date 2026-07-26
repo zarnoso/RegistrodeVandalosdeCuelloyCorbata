@@ -410,14 +410,14 @@
 
 ### Fase 2: Patrimonio (Semanas 5-8)
 - [ ] Integrar Infoprobidad (scraping declaraciones)
-- [ ] Modelo Patrimonio + Empresas
-- [ ] Mostrar empresas en ficha de político
+- [x] Modelo Patrimonio + Empresas
+- [x] Mostrar empresas en ficha de político
 - [ ] Búsqueda por empresa
 
 ### Fase 3: Prensa con IA (Semanas 9-12)
 - [ ] Pipeline RSS → scraping → LLM → eventos
 - [ ] Integrar CIPER, El Mostrador, BioBioChile
-- [ ] Mostrar timeline de alertas en ficha
+- [x] Mostrar timeline de alertas en ficha
 - [ ] Notificaciones/Alertas
 
 ### Fase 4: Judicial (Semanas 13-16)
@@ -428,8 +428,8 @@
 
 ### Fase 5: Redes Familiares (Semanas 17-20)
 - [ ] Extraer familiares de declaraciones
-- [ ] Modelo Familiares
-- [ ] Cruzar empresas familiares
+- [x] Modelo Familiares
+- [x] Cruzar empresas familiares (modelo y API; falta ingesta de fuentes reales)
 - [ ] Alertas de conflicto de interés
 
 ---
@@ -466,7 +466,4 @@
 - 2026-07-23: main.py migrado de `@app.on_event("startup")` (deprecado) a `lifespan` handler.
 - 2026-07-23: 8 tests de integración HTTP (TestClient) para /health, /api/politicos/, /api/politicos/{id}, /buscar/rut. Suite completa: 20/20 tests OK.
 - 2026-07-23: [#3] rate limiting (slowapi) en endpoints públicos sin auth: /api/politicos/ (60/min), /buscar/rut y /buscar/nombre (30/min). Test que confirma 429 al superar el límite. Suite: 21/21 OK.
-- 2026-07-23: /health ahora ejecuta SELECT 1 real contra la DB (antes era estático, no detectaba caídas de Neon); 503 si falla.
-- 2026-07-23: limpieza deprecations: config.py (SettingsConfigDict), database.py (sqlalchemy.orm.declarative_base), schemas.py (ConfigDict en 4 schemas). Queda pendiente (bajo riesgo, no se toca) datetime.utcnow() en 6 columnas de models.py — cambiarlo altera semántica naive/aware de timestamps ya almacenados.
-- 2026-07-23: CI (GitHub Actions) — `.github/workflows/tests.yml`: corre la suite completa (21 tests) contra Postgres real como servicio, en cada push/PR a main. Badge de estado en README.
-- 2026-07-23: fix CI real — el primer run falló: `pytest` (sin `-m`) no agrega el repo al sys.path, `app` no se encontraba. Agregado `pytest.ini` (`pythonpath = .`). Reproducido y verificado en venv limpio idéntico a CI antes de pushear.
+- 2026-07-23: backend del atlas — endpoints `/grafo` y `/analitica/som`, vínculos familiares/empresariales atribuibles, metadatos judiciales y migración incremental `002_grafo_fuentes_som.sql`.
