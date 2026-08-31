@@ -1,14 +1,14 @@
 """
 Backend adaptador para Registro de Vándalos
 Conecta los datos reales de Neon con el frontend de Codex
+Incluye: aliases, relaciones, noticias, grafo de relaciones
 """
 
 import os
+import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 from typing import List, Optional
 import psycopg2
 import psycopg2.extras
@@ -34,60 +34,9 @@ DB_URL = os.environ.get(
 def get_db():
     return psycopg2.connect(DB_URL, sslmode='require', cursor_factory=psycopg2.extras.RealDictCursor)
 
-# Modelos
-class Politico(BaseModel):
-    id: int
-    nombre_completo: str
-    nombre: Optional[str] = None
-    apellido_paterno: Optional[str] = None
-    apellido_materno: Optional[str] = None
-    email: Optional[str] = None
-    tipo: Optional[str] = None
-    region: Optional[str] = None
-    periodo: Optional[str] = None
-    fuente: Optional[str] = None
-    datos_json: Optional[dict] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    fuente_url: Optional[str] = None
-    fecha_extraccion: Optional[str] = None
-    fecha_verificacion: Optional[str] = None
-
-class Noticia(BaseModel):
-    id: int
-    titulo: str
-    url: Optional[str] = None
-    fuente: Optional[str] = None
-    fecha_publicacion: Optional[str] = None
-    contenido: Optional[str] = None
-    mencionados: Optional[list] = None
-    tags: Optional[list] = None
-    relevante: Optional[bool] = None
-    fuente_url: Optional[str] = None
-    fecha_extraccion: Optional[str] = None
-
-class CasoCorrupcion(BaseModel):
-    id: int
-    nombre: str
-    monto: Optional[str] = None
-    año: Optional[str] = None
-    responsable: Optional[str] = None
-    sector: Optional[str] = None
-    partido: Optional[str] = None
-    año_inicio: Optional[str] = None
-    año_fin: Optional[str] = None
-    comuna: Optional[str] = None
-    posición: Optional[str] = None
-    delitos: Optional[str] = None
-    estado: Optional[str] = None
-    sentencia: Optional[str] = None
-    condena: Optional[str] = None
-    conclusión: Optional[str] = None
-    fuentes: Optional[list] = None
-    fuente_url: Optional[str] = None
-    fecha_extraccion: Optional[str] = None
-
-# Endpoints API
+# ===========================
+# ENDPOINTS PRINCIPALES
+# ===========================
 
 @app.get("/")
 def root():
@@ -108,164 +57,47 @@ def health():
     except Exception as e:
         return {"status": "unhealthy", "database": str(e)}
 
-# =============================================
-# POLÍTICOS (orden: estáticas antes que dinámicas)
-# =============================================
+# ===========================
+# POLÍTICOS
+# ===========================
 
-@app.get("/api/politicos/stats")
-def stats_politicos():
+@app.get("/api/politicos/")
+def listar_politicos(skip: int = 0, limit: int = 100, busqueda: str = None):
     conn = get_db()
     cur = conn.cursor()
     
-    cur.execute("SELECT COUNT(*) as total FROM politicos")
-    total = cur.fetchone()['total']
+    if busqueda:
+        cur.execute("""
+            SELECT DISTINCT p.id, p.nombre_completo, p.tipo, p.region
+            FROM politicos p
+            LEFT JOIN politicos_aliases pa ON p.id = pa.politico_id
+            LEFT JOIN relaciones r ON p.id = r.politico_origen_id OR p.id = r.politico_destino_id
+            LEFT JOIN politicos p2 ON r.politico_destino_id = p2.id OR r.politico_origen_id = p2.id
+            WHERE p.nombre_completo ILIKE %s
+               OR pa.alias_nombre ILIKE %s
+               OR p2.nombre_completo ILIKE %s
+            ORDER BY p.nombre_completo
+            LIMIT %s OFFSET %s
+        """, (f"%{busqueda}%", f"%{busqueda}%", f"%{busqueda}%", limit, skip))
+    else:
+        cur.execute("""
+            SELECT id, nombre_completo, tipo, region
+            FROM politicos
+            ORDER BY nombre_completo
+            LIMIT %s OFFSET %s
+        """, (limit, skip))
     
-    cur.execute("SELECT tipo, COUNT(*) as count FROM politicos GROUP BY tipo")
-    por_tipo = {r['tipo']: r['count'] for r in cur.fetchall()}
-    
-    cur.execute("SELECT region, COUNT(*) as count FROM politicos WHERE region IS NOT NULL GROUP BY region")
-    por_region = {r['region']: r['count'] for r in cur.fetchall()}
-    
-    cur.close()
-    conn.close()
-    
-    return {
-        "total": total,
-        "por_tipo": por_tipo,
-        "por_region": por_region
-    }
-
-@app.get("/api/politicos/buscar/{nombre}")
-def buscar_por_nombre(nombre: str):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT * FROM politicos 
-        WHERE nombre_completo ILIKE %s OR apellido_paterno ILIKE %s
-        LIMIT 20
-    """, (f"%{nombre}%", f"%{nombre}%"))
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return [dict(r) for r in rows]
 
-@app.get("/api/politicos/grafo")
-def grafo_relaciones():
-    """Retorna nodos y aristas para el grafo de relaciones"""
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, nombre_completo, tipo, region FROM politicos")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    
-    nodos = []
-    for r in rows:
-        nodos.append({
-            "id": int(r['id']),
-            "nombre": str(r['nombre_completo'] or "Sin nombre"),
-            "tipo": str(r['tipo'] or "desconocido"),
-            "region": str(r['region'] or "Sin región")
-        })
-    
-    return {"nodos": nodos, "aristas": []}
-
-@app.get("/api/politicos/analitica/som")
-def som_data():
-    """Datos para el mapa SOM (Self-Organizing Map)"""
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, nombre_completo, tipo, region FROM politicos ORDER BY nombre_completo")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    
-    puntos = []
-    for r in rows:
-        puntos.append({
-            "id": int(r['id']),
-            "nombre": str(r['nombre_completo'] or "Sin nombre"),
-            "tipo": str(r['tipo'] or "desconocido"),
-            "region": str(r['region'] or "Sin región"),
-            "score_riesgo": 0.5,
-            "total_casos": 0
-        })
-    
-    return {"puntos": puntos}
-
-@app.get("/api/politicos/", response_model=List[dict])
-def listar_politicos(skip: int = 0, limit: int = 100):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT id, nombre_completo, nombre, apellido_paterno, apellido_materno,
-               email, tipo, region, periodo, fuente, datos_json, created_at,
-               updated_at, fuente_url, fecha_extraccion, fecha_verificacion
-        FROM politicos ORDER BY nombre_completo LIMIT %s OFFSET %s
-    """, (limit, skip))
-    rows = cur.fetchall()
-    
-    # Contar casos - simplificado (sin relación directa por ID)
-    # El campo 'responsable' tiene el nombre, pero no es confiable para join
-    # Por ahora asumimos 0 casos, se puede mejorar después con tabla de relación
-    casos_count = {}
-    cur.close()
-    conn.close()
-    
-    resultado = []
-    for r in rows:
-        tipo = (r['tipo'] or "desconocido").lower()
-        num_eventos = casos_count.get(r['id'], 0)
-        
-        # Determinar estado de riesgo
-        if num_eventos > 2:
-            estado_riesgo = "alerta_roja"
-        elif num_eventos > 0:
-            estado_riesgo = "alerta_naranja"
-        else:
-            estado_riesgo = "sin_registros"
-        
-        # Mapear tipo a cargo
-        if "diputado" in tipo:
-            cargo = "Diputado"
-        elif "senador" in tipo:
-            cargo = "Senador"
-        elif "investigado" in tipo:
-            cargo = "Investigado"
-        else:
-            cargo = tipo.capitalize()
-        
-        resultado.append({
-            "id": r['id'],
-            "nombre_completo": r['nombre_completo'] or "Sin nombre",
-            "nombre": r['nombre'],
-            "apellido_paterno": r['apellido_paterno'],
-            "apellido_materno": r['apellido_materno'],
-            "email": r['email'],
-            "tipo": r['tipo'],
-            "region": r['region'] or "Sin región",
-            "periodo": r['periodo'],
-            "fuente": r['fuente'],
-            "institucion": "Congreso",  # Asignado por defecto
-            "cargo": cargo,
-            "partido": "Sin partido",  # No hay campo partido en la DB
-            "estado_riesgo": estado_riesgo,
-            "num_eventos": num_eventos,
-            "num_empresas": 0,  # No hay tabla de empresas
-            "num_familiares": 0,  # No hay tabla de familiares
-            "eventos": [],  # Se cargan en la ficha individual
-            "patrimonios": [],
-            "datos_json": r['datos_json'],
-            "fuente_url": r['fuente_url'],
-            "fecha_extraccion": str(r['fecha_extraccion']) if r['fecha_extraccion'] else None,
-        })
-    
-    return resultado
-
 @app.get("/api/politicos/{politico_id}")
 def detalle_politico(politico_id: int):
     conn = get_db()
     cur = conn.cursor()
+    
+    # Datos del político
     cur.execute("SELECT * FROM politicos WHERE id = %s", (politico_id,))
     row = cur.fetchone()
     if not row:
@@ -273,122 +105,287 @@ def detalle_politico(politico_id: int):
         conn.close()
         raise HTTPException(status_code=404, detail="Político no encontrado")
     
-    # Obtener casos del político
+    # Aliases
+    cur.execute("SELECT * FROM politicos_aliases WHERE politico_id = %s", (politico_id,))
+    aliases = [dict(a) for a in cur.fetchall()]
+    
+    # Relaciones
+    cur.execute("""
+        SELECT r.*, 
+               CASE WHEN r.politico_origen_id = %s THEN p2.nombre_completo ELSE p1.nombre_completo END as relacionado_nombre
+        FROM relaciones r
+        JOIN politicos p1 ON r.politico_origen_id = p1.id
+        JOIN politicos p2 ON r.politico_destino_id = p2.id
+        WHERE r.politico_origen_id = %s OR r.politico_destino_id = %s
+    """, (politico_id, politico_id, politico_id))
+    relaciones = [dict(r) for r in cur.fetchall()]
+    
+    # Casos
     cur.execute("SELECT * FROM casos_corrupcion WHERE responsable ILIKE %s", (f"%{row['nombre_completo']}%",))
     casos = [dict(c) for c in cur.fetchall()]
     
+    # Noticias donde se menciona
+    cur.execute("""
+        SELECT n.* 
+        FROM noticias n
+        JOIN noticias_menciones nm ON n.id = nm.noticia_id
+        WHERE nm.politico_id = %s
+        ORDER BY n.fecha_publicacion DESC
+        LIMIT 10
+    """, (politico_id,))
+    noticias = [dict(n) for n in cur.fetchall()]
+    
     cur.close()
     conn.close()
     
-    resultado = {
-        "id": row['id'],
-        "nombre_completo": row['nombre_completo'] or "Sin nombre",
-        "nombre": row['nombre'],
-        "apellido_paterno": row['apellido_paterno'],
-        "apellido_materno": row['apellido_materno'],
-        "email": row['email'],
-        "tipo": row['tipo'],
-        "region": row['region'] or "Sin región",
-        "periodo": row['periodo'],
-        "fuente": row['fuente'],
-        "institucion": "Congreso",
-        "cargo": row['tipo'].capitalize() if row['tipo'] else "Cargo no informado",
-        "partido": "Sin partido",
-        "estado_riesgo": "alerta_roja" if len(casos) > 2 else ("alerta_naranja" if len(casos) > 0 else "sin_registros"),
-        "num_eventos": len(casos),
-        "num_empresas": 0,
-        "num_familiares": 0,
-        "eventos": casos,
-        "patrimonios": [],
-        "datos_json": row['datos_json'],
-        "fuente_url": row['fuente_url'],
-        "fecha_extraccion": str(row['fecha_extraccion']) if row['fecha_extraccion'] else None,
+    return {
+        **dict(row),
+        "aliases": aliases,
+        "relaciones": relaciones,
+        "casos": casos,
+        "noticias": noticias,
+        "estado_riesgo": "alerta_roja" if len(casos) > 2 else ("alerta_naranja" if len(casos) > 0 else "sin_registros")
     }
-    return resultado
 
-@app.get("/api/casos/", response_model=List[dict])
+# ===========================
+# ALIASES (amigo de, hermano de, etc.)
+# ===========================
+
+@app.get("/api/buscar/alias/")
+def buscar_por_alias(tipo: str = None, nombre: str = None):
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if not tipo or not nombre:
+        cur.close()
+        conn.close()
+        return {"error": "Parámetros 'tipo' y 'nombre' son requeridos"}
+    
+    cur.execute("""
+        SELECT p.id, p.nombre_completo, p.tipo, p.region, pa.alias_tipo, pa.alias_nombre
+        FROM politicos p
+        JOIN politicos_aliases pa ON p.id = pa.politico_id
+        WHERE pa.alias_tipo = %s AND pa.alias_nombre ILIKE %s
+    """, (tipo, f"%{nombre}%"))
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [dict(r) for r in rows]
+
+# ===========================
+# RELACIONES (grafo)
+# ===========================
+
+@app.get("/api/relaciones/")
+def listar_relaciones(politico_id: int = None):
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if politico_id:
+        cur.execute("""
+            SELECT r.*, 
+                   p1.nombre_completo as origen_nombre,
+                   p2.nombre_completo as destino_nombre
+            FROM relaciones r
+            JOIN politicos p1 ON r.politico_origen_id = p1.id
+            JOIN politicos p2 ON r.politico_destino_id = p2.id
+            WHERE r.politico_origen_id = %s OR r.politico_destino_id = %s
+        """, (politico_id, politico_id))
+    else:
+        cur.execute("""
+            SELECT r.*, 
+                   p1.nombre_completo as origen_nombre,
+                   p2.nombre_completo as destino_nombre
+            FROM relaciones r
+            JOIN politicos p1 ON r.politico_origen_id = p1.id
+            JOIN politicos p2 ON r.politico_destino_id = p2.id
+            LIMIT 100
+        """)
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.get("/api/grafo/")
+def grafo_relaciones():
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Nodos: políticos
+    cur.execute("SELECT id, nombre_completo, tipo, region FROM politicos")
+    nodos = [{"id": r['id'], "nombre": r['nombre_completo'], "tipo": r['tipo'], "region": r['region']} for r in cur.fetchall()]
+    
+    # Aristas: relaciones
+    cur.execute("""
+        SELECT politico_origen_id, politico_destino_id, tipo_relacion
+        FROM relaciones
+        WHERE activo = true
+    """)
+    aristas = [{"origen": r['politico_origen_id'], "destino": r['politico_destino_id'], "tipo": r['tipo_relacion']} for r in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    
+    return {"nodos": nodos, "aristas": aristas}
+
+# ===========================
+# CASOS DE CORRUPCIÓN
+# ===========================
+
+@app.get("/api/casos/")
 def listar_casos(skip: int = 0, limit: int = 100):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT c.*, p.nombre_completo as politico_nombre
-        FROM casos_corrupcion c
-        LEFT JOIN politicos p ON c.responsable ILIKE '%%' || p.nombre_completo || '%%'
-        ORDER BY c.created_at DESC LIMIT %s OFFSET %s
-    """, (limit, skip))
+    cur.execute("SELECT * FROM casos_corrupcion ORDER BY created_at DESC LIMIT %s OFFSET %s", (limit, skip))
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return [dict(r) for r in rows]
 
-@app.get("/api/casos/{caso_id}")
-def detalle_caso(caso_id: int):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM casos_corrupcion WHERE id = %s", (caso_id,))
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="Caso no encontrado")
-    return dict(row)
-
-@app.get("/api/noticias/", response_model=List[dict])
-def listar_noticias(skip: int = 0, limit: int = 100):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT * FROM noticias ORDER BY created_at DESC LIMIT %s OFFSET %s
-    """, (limit, skip))
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    return [dict(r) for r in rows]
-
-# =============================================
-# CASOS (orden: estáticas antes que dinámicas)
-# =============================================
-
-@app.get("/api/casos/", response_model=List[dict])
-def listar_casos(skip: int = 0, limit: int = 100):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT * FROM casos_corrupcion ORDER BY created_at DESC LIMIT %s OFFSET %s
-    """, (limit, skip))
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    return [dict(r) for r in rows]
-
-@app.get("/api/casos/{caso_id}")
-def detalle_caso(caso_id: int):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM casos_corrupcion WHERE id = %s", (caso_id,))
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="Caso no encontrado")
-    return dict(row)
-
-# =============================================
+# ===========================
 # NOTICIAS
-# =============================================
+# ===========================
 
-@app.get("/api/noticias/", response_model=List[dict])
-def listar_noticias(skip: int = 0, limit: int = 100):
+@app.get("/api/noticias/")
+def listar_noticias(skip: int = 0, limit: int = 100, busqueda: str = None):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT * FROM noticias ORDER BY created_at DESC LIMIT %s OFFSET %s
-    """, (limit, skip))
+    
+    if busqueda:
+        cur.execute("""
+            SELECT DISTINCT n.* 
+            FROM noticias n
+            LEFT JOIN noticias_menciones nm ON n.id = nm.noticia_id
+            LEFT JOIN politicos p ON nm.politico_id = p.id
+            WHERE n.titulo ILIKE %s
+               OR n.contenido ILIKE %s
+               OR p.nombre_completo ILIKE %s
+            ORDER BY n.created_at DESC
+            LIMIT %s OFFSET %s
+        """, (f"%{busqueda}%", f"%{busqueda}%", f"%{busqueda}%", limit, skip))
+    else:
+        cur.execute("SELECT * FROM noticias ORDER BY created_at DESC LIMIT %s OFFSET %s", (limit, skip))
+    
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return [dict(r) for r in rows]
+
+@app.get("/api/noticias/{noticia_id}")
+def detalle_noticia(noticia_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("SELECT * FROM noticias WHERE id = %s", (noticia_id,))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Noticia no encontrada")
+    
+    # Menciones en esta noticia
+    cur.execute("""
+        SELECT nm.*, p.nombre_completo
+        FROM noticias_menciones nm
+        JOIN politicos p ON nm.politico_id = p.id
+        WHERE nm.noticia_id = %s
+    """, (noticia_id,))
+    menciones = [dict(m) for m in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    
+    return {**dict(row), "menciones": menciones}
+
+# ===========================
+# EXTRACCIÓN DE ENTIDADES (NLP simple)
+# ===========================
+
+def extraer_entidades(texto: str) -> List[dict]:
+    """Extrae menciones de políticos y relaciones de un texto"""
+    if not texto:
+        return []
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    entidades = []
+    
+    # Patrones de búsqueda: "X, hermano de Y", "X, amigo de Y", etc.
+    patrones = [
+        (r'(\w+(?:\s+\w+){0,3})\s*,\s*(?:hermano|hermana)\s+de\s+(\w+(?:\s+\w+){0,3})', 'familiar'),
+        (r'(\w+(?:\s+\w+){0,3})\s*,\s*(?:amigo|amiga)\s+de\s+(\w+(?:\s+\w+){0,3})', 'amistad'),
+        (r'(\w+(?:\s+\w+){0,3})\s*,\s*(?:socio|socia)\s+de\s+(\w+(?:\s+\w+){0,3})', 'negocios'),
+        (r'(\w+(?:\s+\w+){0,3})\s*,\s*(?:pareja|esposo|esposa)\s+de\s+(\w+(?:\s+\w+){0,3})', 'pareja'),
+    ]
+    
+    for patron, tipo in patrones:
+        matches = re.finditer(patron, texto, re.IGNORECASE)
+        for match in matches:
+            entidades.append({
+                "texto_original": match.group(0),
+                "persona_1": match.group(1).strip(),
+                "persona_2": match.group(2).strip(),
+                "tipo_relacion": tipo,
+                "posicion": match.span()
+            })
+    
+    cur.close()
+    conn.close()
+    
+    return entidades
+
+@app.get("/api/extraer-entidades/")
+def api_extraer_entidades(texto: str):
+    """Extrae entidades de un texto"""
+    if not texto:
+        return {"error": "Parámetro 'texto' requerido"}
+    return {"entidades": extraer_entidades(texto)}
+
+# ===========================
+# ESTADÍSTICAS
+# ===========================
+
+@app.get("/api/stats")
+def stats():
+    conn = get_db()
+    cur = conn.cursor()
+    
+    stats = {}
+    
+    cur.execute("SELECT COUNT(*) as total FROM politicos")
+    stats["politicos"] = cur.fetchone()['total']
+    
+    cur.execute("SELECT COUNT(*) as total FROM casos_corrupcion")
+    stats["casos"] = cur.fetchone()['total']
+    
+    cur.execute("SELECT COUNT(*) as total FROM noticias")
+    stats["noticias"] = cur.fetchone()['total']
+    
+    cur.execute("SELECT COUNT(*) as total FROM relaciones")
+    stats["relaciones"] = cur.fetchone()['total']
+    
+    cur.execute("SELECT COUNT(*) as total FROM politicos_aliases")
+    stats["aliases"] = cur.fetchone()['total']
+    
+    cur.execute("SELECT COUNT(*) as total FROM familiares")
+    stats["familiares"] = cur.fetchone()['total']
+    
+    # Por tipo
+    cur.execute("SELECT tipo, COUNT(*) as count FROM politicos GROUP BY tipo")
+    stats["por_tipo"] = {r['tipo']: r['count'] for r in cur.fetchall()}
+    
+    # Por tipo de relación
+    cur.execute("SELECT tipo_relacion, COUNT(*) as count FROM relaciones GROUP BY tipo_relacion")
+    stats["por_relacion"] = {r['tipo_relacion']: r['count'] for r in cur.fetchall()}
+    
+    cur.close()
+    conn.close()
+    
+    return stats
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8003)
+    uvicorn.run(app, host="0.0.0.0", port=8006)
