@@ -56,7 +56,7 @@ def listar_politicos(limit: int = 500, skip: int = 0):
     
     # Consulta simple sin JOIN problemático
     cur.execute("""
-        SELECT id, nombre_completo, tipo, region
+        SELECT id, nombre_completo, tipo, region, partido
         FROM politicos
         ORDER BY nombre_completo
         LIMIT %s OFFSET %s
@@ -103,7 +103,7 @@ def listar_politicos(limit: int = 500, skip: int = 0):
             "region": r['region'] or "Sin región",
             "institucion": "Congreso",
             "cargo": cargo,
-            "partido": "Sin partido",
+            "partido": r['partido'] or "Sin partido",
             "estado_riesgo": estado_riesgo,
             "num_eventos": casos_count,
             "num_empresas": pat_count,
