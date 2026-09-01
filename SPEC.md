@@ -297,3 +297,14 @@ registro-devandalos/
 **Próximos pasos (agregado a la lista existente):**
 6. Poblar tabla `noticias_menciones` para timeline unificado por persona.
 7. Detectar "conexión no declarada": alias/familiar mencionado en prensa/casos sin fila correspondiente en `relaciones`.
+
+### 2026-09-01 — Grafo interactivo: familiares como nodos + fix rutas relativas reintroducidas
+
+**Backend (`backend.py`):**
+- `/api/politicos/grafo` reescrito: antes solo leía `relaciones` (0 filas, grafo vacío). Ahora agrega familiares como nodos tipo `familiar` con arista al político, en el formato `{nodes, edges}` que ya esperaba el frontend (`renderApiNetwork`), incluyendo `metadata.estado` por nodo para colorear según casos asociados.
+
+**Frontend (`frontend/index.html`):**
+- Corregidas 3 rutas relativas reintroducidas tras un pull/rebase anterior (`/api/grafo/`, `/api/som/`, `/health`) — rompían en Cloudflare Pages por no usar el origen absoluto del backend. Se centralizó en una constante `BACKEND_ORIGIN` derivada de la detección de entorno ya existente (`_isLocal`), evitando repetir el ternario en cada fetch.
+- Corregido "uble" → "Ñuble" en `REGION_ORDER` (mojibake residual, la región no aparecía filtrable correctamente).
+- El grafo de "Relaciones" ahora puede mostrar familiares aunque `relaciones` siga vacía — usa `familiares`, que sí tiene datos.
+

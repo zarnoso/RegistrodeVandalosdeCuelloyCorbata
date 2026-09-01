@@ -551,9 +551,10 @@
 
   <script>
     const _isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "192.168.100.23" || location.port === "8006";
-    const API_BASE = _isLocal ? "/api/politicos" : "https://api.registrodevandalos.likay.cl/api/politicos";
-    const API_CASES = _isLocal ? "/api/casos" : "https://api.registrodevandalos.likay.cl/api/casos";
-    const REGION_ORDER = ["Arica y Parinacota","Tarapacá","Antofagasta","Atacama","Coquimbo","Valparaíso","Metropolitana","O'Higgins","Maule","uble","Biobío","La Araucanía","Los Ríos","Los Lagos","Aysén","Magallanes"];
+    const BACKEND_ORIGIN = _isLocal ? "" : "https://api.registrodevandalos.likay.cl";
+    const API_BASE = `${BACKEND_ORIGIN}/api/politicos`;
+    const API_CASES = `${BACKEND_ORIGIN}/api/casos`;
+    const REGION_ORDER = ["Arica y Parinacota","Tarapacá","Antofagasta","Atacama","Coquimbo","Valparaíso","Metropolitana","O'Higgins","Maule","Ñuble","Biobío","La Araucanía","Los Ríos","Los Lagos","Aysén","Magallanes"];
     const fallback = [
       {id:"d1",nombre_completo:"Persona Demostración Norte",cargo:"Diputada",partido:"Partido de ejemplo",region:"Antofagasta",institucion:"Cámara",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]},
       {id:"d2",nombre_completo:"Persona Demostración Centro",cargo:"Senador",partido:"Independiente",region:"Metropolitana",institucion:"Senado",estado_riesgo:"alerta_naranja",num_eventos:2,num_empresas:1,eventos:[{fecha_inicio:"2025-03-18",caso_nombre:"Revisión administrativa ficticia",estado_actual:"en_revisión",resumen:"Contenido sintético para demostrar la línea temporal.",fuente:"Fuente de demostración"}],patrimonios:[]},
@@ -584,7 +585,7 @@
         if (!Array.isArray(data) || !data.length) throw new Error("empty");
         people = data;
         apiAvailable = true;
-        const health = await fetch("/health").then(r => r.ok ? r.json() : null).catch(() => null);
+        const health = await fetch(`${BACKEND_ORIGIN}/health`).then(r => r.ok ? r.json() : null).catch(() => null);
         $("#sourceStatus").textContent = health?.mode === "demo"
           ? "API conectada · datos ficticios"
           : "API conectada · datos públicos";
@@ -605,8 +606,8 @@
       }));
       if (apiAvailable) {
         const [graphResult, somResult] = await Promise.allSettled([
-          fetch(`/api/grafo/?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
-          fetch(`/api/som/?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status))
+          fetch(`${BACKEND_ORIGIN}/api/politicos/grafo?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
+          fetch(`${BACKEND_ORIGIN}/api/politicos/analitica/som?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status))
         ]);
         if (graphResult.status === "fulfilled") graphPayload = graphResult.value;
         if (somResult.status === "fulfilled") somPayload = somResult.value;
