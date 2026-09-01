@@ -33,6 +33,16 @@ def calcular_riesgo(casos_count):
         return "alerta_naranja"
     return "sin_registros"
 
+def calcular_riesgo_heredado(casos_propios, casos_familiares):
+    """Punto 6: el entorno (familiares con casos) sube el score aunque
+    el político no tenga antecedentes directos — visibiliza a quien 'pasa piola'."""
+    score = casos_propios + 0.5 * casos_familiares
+    if score > 2:
+        return "alerta_roja"
+    elif score > 0:
+        return "alerta_naranja"
+    return "sin_registros"
+
 @app.get("/")
 def root():
     frontend_path = os.path.join(os.path.dirname(__file__), "frontend", "index.html")
@@ -53,39 +63,50 @@ def health():
 def listar_politicos(limit: int = 500, skip: int = 0):
     conn = get_db()
     cur = conn.cursor()
-    
-    # Consulta simple sin JOIN problemático
+
+    # Un solo query con JOINs agregados — evita N+1 (antes: hasta 3 queries x 289 políticos)
+    # Suma casos_familiares (punto 6: riesgo heredado del entorno)
     cur.execute("""
-        SELECT id, nombre_completo, tipo, region, partido
-        FROM politicos
-        ORDER BY nombre_completo
+        SELECT
+            p.id, p.nombre_completo, p.tipo, p.region, p.partido,
+            COALESCE(cc.casos_count, 0) AS casos_count,
+            COALESCE(fam.fam_count, 0) AS fam_count,
+            COALESCE(pat.pat_count, 0) AS pat_count,
+            COALESCE(fam_casos.casos_familiares, 0) AS casos_familiares
+        FROM politicos p
+        LEFT JOIN (
+            SELECT responsable, COUNT(*) AS casos_count
+            FROM casos_corrupcion
+            GROUP BY responsable
+        ) cc ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
+        LEFT JOIN (
+            SELECT politico_id, COUNT(*) AS fam_count
+            FROM familiares
+            GROUP BY politico_id
+        ) fam ON fam.politico_id = p.id
+        LEFT JOIN (
+            SELECT politico_id, COUNT(*) AS pat_count
+            FROM patrimonio
+            GROUP BY politico_id
+        ) pat ON pat.politico_id = p.id
+        LEFT JOIN (
+            SELECT f.politico_id, COUNT(*) AS casos_familiares
+            FROM familiares f
+            JOIN casos_corrupcion cc2 ON cc2.responsable ILIKE '%%' || f.nombre_completo || '%%'
+            GROUP BY f.politico_id
+        ) fam_casos ON fam_casos.politico_id = p.id
+        ORDER BY p.nombre_completo
         LIMIT %s OFFSET %s
     """, (limit, skip))
-    
+
     rows = cur.fetchall()
-    
+
     resultado = []
     for r in rows:
-        # Contar casos por separado
-        cur.execute("""
-            SELECT COUNT(*) as total 
-            FROM casos_corrupcion 
-            WHERE responsable ILIKE %s
-        """, (f"%{r['nombre_completo']}%",))
-        casos_count = cur.fetchone()['total'] or 0
-        
-        # Contar familiares
-        cur.execute("SELECT COUNT(*) as total FROM familiares WHERE politico_id = %s", (r['id'],))
-        fam_count = cur.fetchone()['total'] or 0
-        
-        # Contar patrimonio
-        cur.execute("SELECT COUNT(*) as total FROM patrimonio WHERE politico_id = %s", (r['id'],))
-        pat_count = cur.fetchone()['total'] or 0
-        
-        # Determinar estado de riesgo
-        estado_riesgo = calcular_riesgo(casos_count)
-        
-        # Mapear tipo a cargo
+        casos_count = r['casos_count']
+        casos_familiares = r['casos_familiares']
+        estado_riesgo = calcular_riesgo_heredado(casos_count, casos_familiares)
+
         tipo = (r['tipo'] or "").lower()
         if "diputado" in tipo:
             cargo = "Diputado"
@@ -95,7 +116,7 @@ def listar_politicos(limit: int = 500, skip: int = 0):
             cargo = "Investigado"
         else:
             cargo = tipo.capitalize() if tipo else "Otro"
-        
+
         resultado.append({
             "id": r['id'],
             "nombre_completo": r['nombre_completo'] or "Sin nombre",
@@ -106,12 +127,117 @@ def listar_politicos(limit: int = 500, skip: int = 0):
             "partido": r['partido'] or "Sin partido",
             "estado_riesgo": estado_riesgo,
             "num_eventos": casos_count,
-            "num_empresas": pat_count,
-            "num_familiares": fam_count,
+            "num_empresas": r['pat_count'],
+            "num_familiares": r['fam_count'],
+            "casos_familiares": casos_familiares,
             "eventos": [],
             "patrimonios": [],
         })
-    
+
+    cur.close()
+    conn.close()
+    return resultado
+
+@app.get("/api/politicos/{politico_id}")
+def detalle_politico(politico_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, nombre_completo, tipo, region, partido FROM politicos WHERE id = %s", (politico_id,))
+    p = cur.fetchone()
+    if not p:
+        cur.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Político no encontrado")
+
+    cur.execute("""
+        SELECT caso_nombre, fecha_inicio, estado_actual, resumen, fuente
+        FROM casos_corrupcion
+        WHERE responsable ILIKE %s
+        ORDER BY fecha_inicio DESC
+    """, (f"%{p['nombre_completo']}%",))
+    eventos = [dict(row) for row in cur.fetchall()]
+
+    cur.execute("""
+        SELECT nombre_completo, parentesco, fuente_url, notas
+        FROM familiares
+        WHERE politico_id = %s
+    """, (politico_id,))
+    familiares = [dict(row) for row in cur.fetchall()]
+
+    # Punto 2/6: casos de corrupción de cada familiar — red cercana visible
+    for f in familiares:
+        cur.execute("""
+            SELECT caso_nombre, fecha_inicio, estado_actual, resumen, fuente
+            FROM casos_corrupcion
+            WHERE responsable ILIKE %s
+            ORDER BY fecha_inicio DESC
+        """, (f"%{f['nombre_completo']}%",))
+        f['casos'] = [dict(row) for row in cur.fetchall()]
+
+    cur.execute("""
+        SELECT alias_tipo, alias_nombre, fuente_url, verificado
+        FROM politicos_aliases
+        WHERE politico_id = %s
+    """, (politico_id,))
+    aliases = [dict(row) for row in cur.fetchall()]
+
+    cur.execute("""
+        SELECT *
+        FROM patrimonio
+        WHERE politico_id = %s
+    """, (politico_id,))
+    try:
+        patrimonios = [dict(row) for row in cur.fetchall()]
+    except Exception:
+        patrimonios = []
+
+    cur.close()
+    conn.close()
+
+    casos_count = len(eventos)
+    casos_familiares = sum(len(f['casos']) for f in familiares)
+    return {
+        "id": p['id'],
+        "nombre_completo": p['nombre_completo'],
+        "tipo": p['tipo'],
+        "region": p['region'] or "Sin región",
+        "partido": p['partido'] or "Sin partido",
+        "estado_riesgo": calcular_riesgo_heredado(casos_count, casos_familiares),
+        "num_eventos": casos_count,
+        "num_familiares": len(familiares),
+        "num_empresas": len(patrimonios),
+        "casos_familiares": casos_familiares,
+        "eventos": eventos,
+        "familiares": familiares,
+        "aliases": aliases,
+        "patrimonios": patrimonios,
+    }
+
+@app.get("/api/buscar/alias/")
+def buscar_por_alias(nombre: str, tipo: str = None):
+    """Punto 3: buscar por apodo/alias, no solo nombre legal (ej. el Tati)."""
+    conn = get_db()
+    cur = conn.cursor()
+
+    if tipo:
+        cur.execute("""
+            SELECT pa.politico_id, pa.alias_tipo, pa.alias_nombre, pa.verificado,
+                   p.nombre_completo, p.region, p.tipo AS cargo_tipo
+            FROM politicos_aliases pa
+            JOIN politicos p ON p.id = pa.politico_id
+            WHERE pa.alias_nombre ILIKE %s AND pa.alias_tipo = %s
+        """, (f"%{nombre}%", tipo))
+    else:
+        cur.execute("""
+            SELECT pa.politico_id, pa.alias_tipo, pa.alias_nombre, pa.verificado,
+                   p.nombre_completo, p.region, p.tipo AS cargo_tipo
+            FROM politicos_aliases pa
+            JOIN politicos p ON p.id = pa.politico_id
+            WHERE pa.alias_nombre ILIKE %s
+        """, (f"%{nombre}%",))
+
+    resultado = [dict(row) for row in cur.fetchall()]
     cur.close()
     conn.close()
     return resultado

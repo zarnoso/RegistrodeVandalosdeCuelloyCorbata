@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Atlas interactivo de autoridades, relaciones y antecedentes pÃºblicos de Chile.">
-  <title>Trama PÃºblica â€” Atlas de relaciones polÃ­ticas</title>
+  <meta name="description" content="Atlas interactivo de autoridades, relaciones y antecedentes públicos de Chile.">
+  <title>Trama Pública — Atlas de relaciones políticas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,650&display=swap" rel="stylesheet">
@@ -477,17 +477,17 @@
     <aside class="sidebar">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
-        <div><strong>Trama PÃºblica</strong><small>Atlas de evidencia</small></div>
+        <div><strong>Trama Pública</strong><small>Atlas de evidencia</small></div>
       </div>
       <div class="nav-label">Explorar</div>
       <nav class="nav" aria-label="Vistas principales">
         <button class="active" data-view="territory"><span class="nav-icon">CL</span><span>Territorio</span></button>
-        <button data-view="network"><span class="nav-icon">â†—</span><span>Relaciones</span></button>
-        <button data-view="som"><span class="nav-icon">âˆ·</span><span>Similitudes SOM</span></button>        <button data-view="cases"><span class="nav-icon">CS</span><span>Casos</span></button>
+        <button data-view="network"><span class="nav-icon"></span><span>Relaciones</span></button>
+        <button data-view="som"><span class="nav-icon"></span><span>Similitudes SOM</span></button>        <button data-view="cases"><span class="nav-icon">CS</span><span>Casos</span></button>
       </nav>
       <div class="method-note">
         <strong>Lectura responsable</strong>
-        Una investigaciÃ³n no equivale a culpabilidad. Cada antecedente debe conservar su fuente, fecha y estado procesal.
+        Una investigación no equivale a culpabilidad. Cada antecedente debe conservar su fuente, fecha y estado procesal.
       </div>
     </aside>
 
@@ -495,7 +495,7 @@
       <header class="topbar">
         <label class="search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.6"/></svg>
-          <input id="searchInput" type="search" placeholder="Buscar por nombre, partido o regiÃ³nâ€¦" autocomplete="off">
+          <input id="searchInput" type="search" placeholder="Buscar por nombre, partido o región" autocomplete="off">
         </label>
         <div class="top-status"><span class="live-dot"></span><span id="sourceStatus">Conectando datos</span></div>
       </header>
@@ -504,16 +504,16 @@
         <div>
           <span class="eyebrow" id="viewEyebrow">Lectura territorial</span>
           <h1 id="viewTitle">El poder deja una <em>trama.</em></h1>
-          <p class="hero-copy" id="viewCopy">Explora autoridades, antecedentes pÃºblicos y conexiones declaradas sin perder de vista el territorio ni el estado de cada fuente.</p>
+          <p class="hero-copy" id="viewCopy">Explora autoridades, antecedentes públicos y conexiones declaradas sin perder de vista el territorio ni el estado de cada fuente.</p>
         </div>
-        <aside class="hero-note" id="viewNote"><strong>CÃ³mo leer este mapa</strong>Selecciona una regiÃ³n de la columna chilena. El tamaÃ±o de cada marca resume la cantidad de autoridades registradas, no su nivel de riesgo.</aside>
+        <aside class="hero-note" id="viewNote"><strong>Cómo leer este mapa</strong>Selecciona una región de la columna chilena. El tamaño de cada marca resume la cantidad de autoridades registradas, no su nivel de riesgo.</aside>
       </section>
 
       <section class="metrics" aria-label="Resumen">
-        <article class="metric"><span>Autoridades registradas</span><b id="metricPeople">â€”</b></article>
-        <article class="metric"><span>Antecedentes documentados</span><b id="metricEvents">â€”</b></article>
-        <article class="metric"><span>VÃ­nculos declarados</span><b id="metricLinks">â€”</b></article>
-        <article class="metric"><span>Regiones representadas</span><b id="metricRegions">â€”</b></article>
+        <article class="metric"><span>Autoridades registradas</span><b id="metricPeople"></b></article>
+        <article class="metric"><span>Antecedentes documentados</span><b id="metricEvents"></b></article>
+        <article class="metric"><span>Vínculos declarados</span><b id="metricLinks"></b></article>
+        <article class="metric"><span>Regiones representadas</span><b id="metricRegions"></b></article>
       </section>
 
       <section class="workspace">
@@ -523,14 +523,14 @@
             <div class="panel-actions" id="filters">
               <button class="chip active" data-filter="all">Todas</button>
               <button class="chip" data-filter="clear">Sin registros</button>
-              <button class="chip" data-filter="review">En revisiÃ³n</button>
-              <button class="chip" data-filter="formal">FormalizaciÃ³n</button>
+              <button class="chip" data-filter="review">En revisión</button>
+              <button class="chip" data-filter="formal">Formalización</button>
             </div>
           </div>
-          <div class="viz" id="viz" role="img" aria-label="VisualizaciÃ³n interactiva">
+          <div class="viz" id="viz" role="img" aria-label="Visualización interactiva">
             <svg id="vizSvg" viewBox="0 0 800 500"></svg>
-            <div class="hint" id="vizHint">Pasa el cursor sobre una regiÃ³n y selecciÃ³nala para filtrar la lista.</div>
-            <div class="legend"><span><i style="background:#087f73"></i>sin registros</span><span><i style="background:#d18a23"></i>en revisiÃ³n</span><span><i style="background:#b94d4a"></i>formalizado</span></div>
+            <div class="hint" id="vizHint">Pasa el cursor sobre una región y selecciónala para filtrar la lista.</div>
+            <div class="legend"><span><i style="background:#087f73"></i>sin registros</span><span><i style="background:#d18a23"></i>en revisión</span><span><i style="background:#b94d4a"></i>formalizado</span></div>
           </div>
         </div>
         <aside class="results">
@@ -543,7 +543,7 @@
 
   <div class="drawer-backdrop" id="drawerBackdrop">
     <article class="drawer" role="dialog" aria-modal="true" aria-labelledby="profileName">
-      <button class="drawer-close" id="drawerClose" aria-label="Cerrar">Ã—</button>
+      <button class="drawer-close" id="drawerClose" aria-label="Cerrar"></button>
       <div id="drawerContent"></div>
     </article>
   </div>
@@ -553,14 +553,14 @@
     const _isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "192.168.100.23" || location.port === "8006";
     const API_BASE = _isLocal ? "/api/politicos" : "https://api.registrodevandalos.likay.cl/api/politicos";
     const API_CASES = _isLocal ? "/api/casos" : "https://api.registrodevandalos.likay.cl/api/casos";
-    const REGION_ORDER = ["Arica y Parinacota","TarapacÃ¡","Antofagasta","Atacama","Coquimbo","ValparaÃ­so","Metropolitana","O'Higgins","Maule","Ã‘uble","BiobÃ­o","La AraucanÃ­a","Los RÃ­os","Los Lagos","AysÃ©n","Magallanes"];
+    const REGION_ORDER = ["Arica y Parinacota","Tarapacá","Antofagasta","Atacama","Coquimbo","Valparaíso","Metropolitana","O'Higgins","Maule","uble","Biobío","La Araucanía","Los Ríos","Los Lagos","Aysén","Magallanes"];
     const fallback = [
-      {id:"d1",nombre_completo:"Persona DemostraciÃ³n Norte",cargo:"Diputada",partido:"Partido de ejemplo",region:"Antofagasta",institucion:"CÃ¡mara",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]},
-      {id:"d2",nombre_completo:"Persona DemostraciÃ³n Centro",cargo:"Senador",partido:"Independiente",region:"Metropolitana",institucion:"Senado",estado_riesgo:"alerta_naranja",num_eventos:2,num_empresas:1,eventos:[{fecha_inicio:"2025-03-18",caso_nombre:"RevisiÃ³n administrativa ficticia",estado_actual:"en_revisiÃ³n",resumen:"Contenido sintÃ©tico para demostrar la lÃ­nea temporal.",fuente:"Fuente de demostraciÃ³n"}],patrimonios:[]},
-      {id:"d3",nombre_completo:"Persona DemostraciÃ³n Costa",cargo:"Alcaldesa",partido:"Movimiento local",region:"ValparaÃ­so",institucion:"Municipalidad",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:0,eventos:[],patrimonios:[]},
-      {id:"d4",nombre_completo:"Persona DemostraciÃ³n Sur",cargo:"Diputado",partido:"Partido de ejemplo",region:"BiobÃ­o",institucion:"CÃ¡mara",estado_riesgo:"alerta_roja",num_eventos:1,num_empresas:3,eventos:[{fecha_inicio:"2024-11-02",caso_nombre:"Caso judicial ficticio",estado_actual:"formalizado",resumen:"Ejemplo sin relaciÃ³n con hechos o personas reales.",fuente:"Fuente de demostraciÃ³n"}],patrimonios:[]},
-      {id:"d5",nombre_completo:"Persona DemostraciÃ³n Austral",cargo:"Consejera regional",partido:"Independiente",region:"Magallanes",institucion:"Gobierno regional",estado_riesgo:"alerta_naranja",num_eventos:1,num_empresas:1,eventos:[{fecha_inicio:"2025-09-10",caso_nombre:"AuditorÃ­a ficticia",estado_actual:"investigado",resumen:"Registro sintÃ©tico de interfaz.",fuente:"Fuente de demostraciÃ³n"}],patrimonios:[]},
-      {id:"d6",nombre_completo:"Persona DemostraciÃ³n Valle",cargo:"Senadora",partido:"CoaliciÃ³n ejemplo",region:"Maule",institucion:"Senado",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]}
+      {id:"d1",nombre_completo:"Persona Demostración Norte",cargo:"Diputada",partido:"Partido de ejemplo",region:"Antofagasta",institucion:"Cámara",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]},
+      {id:"d2",nombre_completo:"Persona Demostración Centro",cargo:"Senador",partido:"Independiente",region:"Metropolitana",institucion:"Senado",estado_riesgo:"alerta_naranja",num_eventos:2,num_empresas:1,eventos:[{fecha_inicio:"2025-03-18",caso_nombre:"Revisión administrativa ficticia",estado_actual:"en_revisión",resumen:"Contenido sintético para demostrar la línea temporal.",fuente:"Fuente de demostración"}],patrimonios:[]},
+      {id:"d3",nombre_completo:"Persona Demostración Costa",cargo:"Alcaldesa",partido:"Movimiento local",region:"Valparaíso",institucion:"Municipalidad",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:0,eventos:[],patrimonios:[]},
+      {id:"d4",nombre_completo:"Persona Demostración Sur",cargo:"Diputado",partido:"Partido de ejemplo",region:"Biobío",institucion:"Cámara",estado_riesgo:"alerta_roja",num_eventos:1,num_empresas:3,eventos:[{fecha_inicio:"2024-11-02",caso_nombre:"Caso judicial ficticio",estado_actual:"formalizado",resumen:"Ejemplo sin relación con hechos o personas reales.",fuente:"Fuente de demostración"}],patrimonios:[]},
+      {id:"d5",nombre_completo:"Persona Demostración Austral",cargo:"Consejera regional",partido:"Independiente",region:"Magallanes",institucion:"Gobierno regional",estado_riesgo:"alerta_naranja",num_eventos:1,num_empresas:1,eventos:[{fecha_inicio:"2025-09-10",caso_nombre:"Auditoría ficticia",estado_actual:"investigado",resumen:"Registro sintético de interfaz.",fuente:"Fuente de demostración"}],patrimonios:[]},
+      {id:"d6",nombre_completo:"Persona Demostración Valle",cargo:"Senadora",partido:"Coalición ejemplo",region:"Maule",institucion:"Senado",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]}
     ];
 
     let people = [], filtered = [], selectedRegion = null, currentView = "territory", activeFilter = "all", apiAvailable = false;    let casesData = [], filteredCases = [], caseFilters = { estado_procesal: "all", tipo_alerta: "all" };
@@ -586,11 +586,11 @@
         apiAvailable = true;
         const health = await fetch("/health").then(r => r.ok ? r.json() : null).catch(() => null);
         $("#sourceStatus").textContent = health?.mode === "demo"
-          ? "API conectada Â· datos ficticios"
-          : "API conectada Â· datos pÃºblicos";
+          ? "API conectada · datos ficticios"
+          : "API conectada · datos públicos";
       } catch {
         people = fallback;
-        $("#sourceStatus").textContent = "Modo demostraciÃ³n Â· datos ficticios";
+        $("#sourceStatus").textContent = "Modo demostración · datos ficticios";
       }
       people = people.map((p,i) => ({
         ...p,
@@ -598,7 +598,7 @@
         nombre_completo: p.nombre_completo || "Sin nombre",
         cargo: p.cargo || "Cargo no informado",
         partido: p.partido || "Sin partido",
-        region: p.region || "Sin regiÃ³n",
+        region: p.region || "Sin región",
         num_eventos: Number(p.num_eventos || 0),
         num_empresas: Number(p.num_empresas || 0),
         num_familiares: Number(p.num_familiares || 0)
@@ -619,7 +619,7 @@
       $("#metricPeople").textContent = people.length;
       $("#metricEvents").textContent = people.reduce((n,p)=>n+p.num_eventos,0);
       $("#metricLinks").textContent = people.reduce((n,p)=>n+p.num_empresas+p.num_familiares,0);
-      $("#metricRegions").textContent = new Set(people.map(p=>p.region).filter(r=>r!=="Sin regiÃ³n")).size;
+      $("#metricRegions").textContent = new Set(people.map(p=>p.region).filter(r=>r!=="Sin región")).size;
     }
 
     function applyFilters() {
@@ -639,9 +639,9 @@
       $("#personList").innerHTML = filtered.length ? filtered.map(p => `
         <button class="person" data-person="${escapeHtml(p.id)}">
           <span class="avatar">${escapeHtml(initials(p.nombre_completo))}</span>
-          <span><span class="person-name">${escapeHtml(p.nombre_completo)}</span><span class="person-meta">${escapeHtml(p.cargo)} Â· ${escapeHtml(p.region)}</span><span class="person-meta">${escapeHtml(formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado")))}</span></span>
+          <span><span class="person-name">${escapeHtml(p.nombre_completo)}</span><span class="person-meta">${escapeHtml(p.cargo)} · ${escapeHtml(p.region)}</span><span class="person-meta">${escapeHtml(formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado")))}</span></span>
           <span class="risk ${riskGroup(p)==="formal"?"red":riskGroup(p)==="review"?"amber":""}" title="${escapeHtml(riskGroup(p))}"></span>
-        </button>`).join("") : `<div class="empty">No hay resultados con estos filtros.<br>Prueba otra regiÃ³n o estado.</div>`;
+        </button>`).join("") : `<div class="empty">No hay resultados con estos filtros.<br>Prueba otra región o estado.</div>`;
       document.querySelectorAll("[data-person]").forEach(btn => btn.addEventListener("click", () => openProfile(btn.dataset.person)));
     }
 
@@ -671,7 +671,7 @@
         });
         path.style.cursor = "pointer";
         path.addEventListener("click",()=>{selectedRegion=selectedRegion===region?null:region;applyFilters();});
-        bindTooltip(path, `${region} Â· ${count} registro${count===1?"":"s"}`);
+        bindTooltip(path, `${region} · ${count} registro${count===1?"":"s"}`);
         group.append(path);
         if (i%2===0 || count>0) {
           const text = svgEl("text",{x:center+125,y:y+14,fill:"#66716d","font-size":"10","font-family":"DM Mono"});
@@ -684,7 +684,7 @@
       title.textContent = selectedRegion || "Chile";
       svg.append(title);
       const sub = svgEl("text",{x:"42",y:"111",fill:"#66716d","font-size":"10","font-family":"DM Mono"});
-      sub.textContent = selectedRegion ? "SELECCIÃ“N ACTIVA Â· CLIC PARA LIMPIAR" : "16 REGIONES Â· EJE NORTE A SUR";
+      sub.textContent = selectedRegion ? "SELECCIN ACTIVA · CLIC PARA LIMPIAR" : "16 REGIONES · EJE NORTE A SUR";
       svg.append(sub);
     }
 
@@ -716,7 +716,7 @@
         const c=svgEl("circle",{cx:x,cy:y,r:13+Math.min(8,p.num_eventos*2),fill:riskColor(p),stroke:"#fff","stroke-width":"3"});
         const t=svgEl("text",{x,y:y+30,"text-anchor":"middle",fill:"#17211f","font-size":"9","font-family":"Manrope"});
         t.textContent=p.nombre_completo.split(" ").slice(0,2).join(" ");
-        g.append(c,t); g.addEventListener("click",()=>openProfile(p.id)); bindTooltip(g,`${p.nombre_completo} · ${p.num_eventos} antecedentes · ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))}`); svg.append(g);
+        g.append(c,t); g.addEventListener("click",()=>openProfile(p.id)); bindTooltip(g,`${p.nombre_completo}  ${p.num_eventos} antecedentes  ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))}`); svg.append(g);
       });
     }
 
@@ -766,7 +766,7 @@
           label.textContent=node.etiqueta.split(" ").slice(0,2).join(" "); g.append(label);
           g.addEventListener("click",()=>openProfile(node.id.replace("politico:","")));
         }
-        bindTooltip(g,`${node.etiqueta} · ${node.tipo} · ${formatProcessState(node.metadata?.estado || (node.tipo === "evento" ? "abierto" : "sin_estado"))}`);
+        bindTooltip(g,`${node.etiqueta}  ${node.tipo}  ${formatProcessState(node.metadata?.estado || (node.tipo === "evento" ? "abierto" : "sin_estado"))}`);
         svg.append(g);
       });
     }
@@ -788,11 +788,11 @@
         const x=ox+c*cellW+20+(i%3)*18, y=oy+r*cellH+22+(i%2)*24;
         const node=svgEl("circle",{cx:x,cy:y,r:10,fill:riskColor(p),stroke:"white","stroke-width":"3",tabindex:"0",role:"button"});
         node.style.cursor="pointer"; node.addEventListener("click",()=>openProfile(p.id));
-        bindTooltip(node,`${p.nombre_completo} · ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))} · vecino por similitud estadística`);
+        bindTooltip(node,`${p.nombre_completo}  ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))}  vecino por similitud estadstica`);
         svg.append(node);
       });
       const xLabel=svgEl("text",{x:"400",y:"478","text-anchor":"middle",fill:"#66716d","font-size":"10","font-family":"DM Mono"});
-      xLabel.textContent="â† MENOS VÃNCULOS DECLARADOS Â· MÃS VÃNCULOS DECLARADOS â†’"; svg.append(xLabel);
+      xLabel.textContent=" MENOS VÍNCULOS DECLARADOS · MÁS VÍNCULOS DECLARADOS "; svg.append(xLabel);
     }
 
     function trainSom(items, cols, rows) {
@@ -878,32 +878,40 @@
       const stateClass = processState === "condenado" ? "convicted" : processState === "cerrado_sin_condena" ? "closed" : "open";
       $("#drawerContent").innerHTML=`
         <header class="profile-head">
-          <span class="eyebrow">${escapeHtml(p.institucion||"Registro pÃºblico")}</span>
+          <span class="eyebrow">${escapeHtml(p.institucion||"Registro público")}</span>
           <h2 id="profileName">${escapeHtml(p.nombre_completo)}</h2>
-          <p>${escapeHtml(p.cargo)} Â· ${escapeHtml(p.partido)} Â· ${escapeHtml(p.region)}</p>
+          <p>${escapeHtml(p.cargo)} · ${escapeHtml(p.partido)} · ${escapeHtml(p.region)}</p>
         </header>
-        <div class="disclaimer">Los antecedentes describen estados documentales y procesales. No constituyen una declaraciÃ³n de culpabilidad. Verifica siempre la fuente y su fecha.</div>
+        <div class="disclaimer">Los antecedentes describen estados documentales y procesales. No constituyen una declaración de culpabilidad. Verifica siempre la fuente y su fecha.</div>
         <section class="detail-section"><h3>Resumen registrado</h3><div class="detail-grid">
           <div class="detail-stat"><b>${events.length||p.num_eventos||0}</b><span>antecedentes</span></div>
           <div class="detail-stat"><b>${companyCount}</b><span>empresas</span></div>
           <div class="detail-stat"><b>${escapeHtml(p.familiares?.length||0)}</b><span>familiares</span></div>
         </div></section>
         <div class="state-badge ${stateClass}">
-          <span>Ãšltimo estado procesal:</span>
+          <span>Último estado procesal:</span>
           <strong>${escapeHtml(formatProcessState(processState))}</strong>
         </div>
-        <section class="detail-section"><h3>CronologÃ­a y fuentes</h3>
+        <section class="detail-section"><h3>Cronología y fuentes</h3>
           ${events.length?events.map(e=>{const processState=["absuelto","sobreseido","archivado"].includes(String(e.estado_actual||"").toLowerCase())?"cerrado_sin_condena":["en_revisión","investigado","formalizado"].includes(String(e.estado_actual||"").toLowerCase())?"abierto":String(e.estado_actual||"").toLowerCase()==="condenado"?"condenado":"sin_estado";const badgeClass=processState==="condenado"?"convicted":processState==="cerrado_sin_condena"?"closed":"open";return `<article class="event"><time>${escapeHtml(e.fecha_inicio||"Fecha no informada")}</time><strong>${escapeHtml(e.caso_nombre||"Antecedente")}</strong><p>${escapeHtml(e.resumen||"Sin resumen.")}</p><p><b>Estado:</b> ${escapeHtml(e.estado_actual||"no informado")} · <b>Fuente:</b> ${escapeHtml(e.fuente||"no informada")}</p><div class="state-badge ${badgeClass}"><span>Lectura metodológica:</span><strong>${escapeHtml(formatProcessState(processState))}</strong></div></article>`;}).join(""):`<div class="empty">No existen antecedentes asociados en la base actual.</div>`}
         </section>
-        <section class="detail-section"><h3>RectificaciÃ³n</h3><p style="color:var(--muted);font-size:11px;line-height:1.6">Si un registro estÃ¡ desactualizado o requiere contexto, solicita revisiÃ³n indicando la fuente y el antecedente correspondiente.</p></section>`;
+        <section class="detail-section"><h3>Entorno cercano</h3>
+          ${(p.familiares&&p.familiares.length)?p.familiares.map(f=>{
+            const casos=f.casos||[];
+            const flag=casos.length?`<div class="state-badge convicted" style="margin-top:6px"><span>⚠ Vínculo con antecedentes</span><strong>${casos.length} caso(s) registrado(s) a nombre de esta persona</strong></div>`:"";
+            return `<article class="event"><strong>${escapeHtml(f.nombre_completo)}</strong><p>${escapeHtml(f.parentesco||"vínculo no especificado")}${f.notas?` · ${escapeHtml(f.notas)}`:""}</p>${flag}</article>`;
+          }).join(""):`<div class="empty">Sin familiares registrados en la base actual.</div>`}
+          ${(p.aliases&&p.aliases.length)?`<div class="detail-grid" style="margin-top:10px">${p.aliases.map(a=>`<div class="detail-stat"><b>${escapeHtml(a.alias_nombre)}</b><span>${escapeHtml(a.alias_tipo)}${a.verificado?" · verificado":""}</span></div>`).join("")}</div>`:""}
+        </section>
+        <section class="detail-section"><h3>Rectificación</h3><p style="color:var(--muted);font-size:11px;line-height:1.6">Si un registro está desactualizado o requiere contexto, solicita revisión indicando la fuente y el antecedente correspondiente.</p></section>`;
       $("#drawerBackdrop").classList.add("open");
       $("#drawerClose").focus();
     }
 
     const viewText={
-      territory:{eyebrow:"Lectura territorial",title:'El poder deja una <em>trama.</em>',copy:"Explora autoridades, antecedentes pÃºblicos y conexiones declaradas sin perder de vista el territorio ni el estado de cada fuente.",note:"Selecciona una regiÃ³n de la columna chilena. El tamaÃ±o de cada marca resume la cantidad de autoridades registradas, no su nivel de riesgo.",panel:"Autoridades por territorio",panelEye:"Chile longitudinal",hint:"Pasa el cursor sobre una regiÃ³n y selecciÃ³nala para filtrar la lista."},
-      network:{eyebrow:"Relaciones declaradas",title:'NingÃºn registro existe <em>aislado.</em>',copy:"Observa cÃ³mo autoridades, empresas, familiares y antecedentes comparten una red de vÃ­nculos explÃ­citos y verificables.",note:"Cada lÃ­nea representa una relaciÃ³n registrada. Su proximidad visual no implica coordinaciÃ³n, asociaciÃ³n ilÃ­cita ni responsabilidad compartida.",panel:"Grafo de relaciones",panelEye:"VÃ­nculos explÃ­citos",hint:"Selecciona un nodo para abrir su ficha. El grosor resume vÃ­nculos registrados."},
-      som:{eyebrow:"ExploraciÃ³n estadÃ­stica",title:'Parecidos no significa <em>relacionados.</em>',copy:"El mapa autoorganizado agrupa perfiles con variables similares para descubrir patrones que una lista tradicional no muestra.",note:"El SOM es exploratorio: la cercanÃ­a indica similitud matemÃ¡tica entre atributos, no parentesco, colaboraciÃ³n ni culpabilidad.",panel:"Mapa de similitudes",panelEye:"SOM exploratorio",hint:"Cada celda agrupa perfiles parecidos. Selecciona un punto para entender sus datos originales."}
+      territory:{eyebrow:"Lectura territorial",title:'El poder deja una <em>trama.</em>',copy:"Explora autoridades, antecedentes públicos y conexiones declaradas sin perder de vista el territorio ni el estado de cada fuente.",note:"Selecciona una región de la columna chilena. El tamaño de cada marca resume la cantidad de autoridades registradas, no su nivel de riesgo.",panel:"Autoridades por territorio",panelEye:"Chile longitudinal",hint:"Pasa el cursor sobre una región y selecciónala para filtrar la lista."},
+      network:{eyebrow:"Relaciones declaradas",title:'Ningún registro existe <em>aislado.</em>',copy:"Observa cómo autoridades, empresas, familiares y antecedentes comparten una red de vínculos explícitos y verificables.",note:"Cada línea representa una relación registrada. Su proximidad visual no implica coordinación, asociación ilícita ni responsabilidad compartida.",panel:"Grafo de relaciones",panelEye:"Vínculos explícitos",hint:"Selecciona un nodo para abrir su ficha. El grosor resume vínculos registrados."},
+      som:{eyebrow:"Exploración estadística",title:'Parecidos no significa <em>relacionados.</em>',copy:"El mapa autoorganizado agrupa perfiles con variables similares para descubrir patrones que una lista tradicional no muestra.",note:"El SOM es exploratorio: la cercanía indica similitud matemática entre atributos, no parentesco, colaboración ni culpabilidad.",panel:"Mapa de similitudes",panelEye:"SOM exploratorio",hint:"Cada celda agrupa perfiles parecidos. Selecciona un punto para entender sus datos originales."}
     };
 
     document.querySelectorAll(".nav button").forEach(btn=>btn.addEventListener("click",()=>{
@@ -911,7 +919,7 @@
       document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x===btn));
       const v=viewText[currentView];
       $("#viewEyebrow").textContent=v.eyebrow; $("#viewTitle").innerHTML=v.title; $("#viewCopy").textContent=v.copy;
-      $("#viewNote").innerHTML=`<strong>CÃ³mo leer esta vista</strong>${escapeHtml(v.note)}`;
+      $("#viewNote").innerHTML=`<strong>Cómo leer esta vista</strong>${escapeHtml(v.note)}`;
       $("#panelTitle").textContent=v.panel; $("#panelEyebrow").textContent=v.panelEye; $("#vizHint").textContent=v.hint;
       applyFilters();
     }));

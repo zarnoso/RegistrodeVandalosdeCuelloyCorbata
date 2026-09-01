@@ -270,3 +270,30 @@ registro-devandalos/
 3. Crear tabla de relaciones con datos reales
 4. Mejorar extracción de entidades con NLP
 5. Implementar sistema de alertas
+
+---
+
+## Changelog
+
+### 2026-09-01 — Fix backend/frontend: N+1, detalle, riesgo heredado, alias, limpieza
+
+**Backend (`backend.py`):**
+- Eliminada credencial Neon hardcodeada — ahora requiere `DATABASE_URL` sin default.
+- N+1 corregido: `listar_politicos` pasó de ~870 queries (3 por cada uno de 289 políticos) a 1 query con `LEFT JOIN` agregado.
+- Agregado endpoint `/api/politicos/{id}` (detalle): trae eventos, familiares, aliases y patrimonios reales.
+- Agregado endpoint `/api/buscar/alias/`: búsqueda por apodo, no solo nombre legal.
+- Riesgo heredado: nueva función `calcular_riesgo_heredado()` — suma casos propios + 0.5×casos de familiares directos, así el entorno de un político con antecedentes queda visible aunque él no tenga casos propios.
+- `partido` ya no está hardcodeado a "Sin partido" — se lee de la columna real de `politicos`.
+
+**Frontend (`frontend/index.html`):**
+- Corregido mojibake (36+ ocurrencias, reincidente 2 veces por sobrescritura externa): texto guardado con doble encoding UTF-8→Latin-1→UTF-8. Validado en 0 residuos al cierre.
+- Bug funcional: comparaciones `.includes("en_revisin")` sin tilde nunca matcheaban contra `"en_revisión"` real de la BD — estados procesales se clasificaban mal. Corregido en 2 puntos.
+- Nueva sección "Entorno cercano" en el drawer: muestra familiares y alias de cada político, con flag visual cuando un familiar tiene casos de corrupción a su propio nombre.
+
+**Limpieza de infraestructura:**
+- Eliminados `_worker.js`, `frontend/_worker.js`, `frontend/functions/api/_middleware.js`, `wrangler.toml`, `proxy-wrangler.toml` — 4 configuraciones de red conflictivas apuntando a 3 dominios/puertos distintos (`localhost:8005`, `api.mapadata.cl`, `registro.mapadata.cl`), ninguna coordinada con el Cloudflare Tunnel real.
+- Eliminado `__pycache__/` y `.wrangler/cache/` del control de versiones (exponía email y account ID de Cloudflare). Agregado `.gitignore`.
+
+**Próximos pasos (agregado a la lista existente):**
+6. Poblar tabla `noticias_menciones` para timeline unificado por persona.
+7. Detectar "conexión no declarada": alias/familiar mencionado en prensa/casos sin fila correspondiente en `relaciones`.
