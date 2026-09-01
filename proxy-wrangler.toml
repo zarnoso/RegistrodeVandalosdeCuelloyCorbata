@@ -1,0 +1,8 @@
+name = "registro-devandalos-proxy"
+main = "_worker.js"
+compatibility_date = "2026-08-31"
+
+[env.production]
+routes = [
+  { pattern = "api.registrodevandalos.likay.cl/*", zone_name = "likay.cl" }
+]

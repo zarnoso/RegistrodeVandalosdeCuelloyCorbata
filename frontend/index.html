@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -483,7 +483,7 @@
       <nav class="nav" aria-label="Vistas principales">
         <button class="active" data-view="territory"><span class="nav-icon">CL</span><span>Territorio</span></button>
         <button data-view="network"><span class="nav-icon">â†—</span><span>Relaciones</span></button>
-        <button data-view="som"><span class="nav-icon">âˆ·</span><span>Similitudes SOM</span></button>`r`n        <button data-view="cases"><span class="nav-icon">CS</span><span>Casos</span></button>
+        <button data-view="som"><span class="nav-icon">âˆ·</span><span>Similitudes SOM</span></button>        <button data-view="cases"><span class="nav-icon">CS</span><span>Casos</span></button>
       </nav>
       <div class="method-note">
         <strong>Lectura responsable</strong>
@@ -550,7 +550,9 @@
   <div class="tooltip" id="tooltip"></div>
 
   <script>
-    const API_BASE = "https://api.registrodevandalos.pages.dev/api/politicos";`r`n    const API_CASES = "https://api.registrodevandalos.pages.dev/api/casos";
+    const _isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "192.168.100.23" || location.port === "8006";
+    const API_BASE = _isLocal ? "/api/politicos" : "https://api.registrodevandalos.likay.cl/api/politicos";
+    const API_CASES = _isLocal ? "/api/casos" : "https://api.registrodevandalos.likay.cl/api/casos";
     const REGION_ORDER = ["Arica y Parinacota","TarapacÃ¡","Antofagasta","Atacama","Coquimbo","ValparaÃ­so","Metropolitana","O'Higgins","Maule","Ã‘uble","BiobÃ­o","La AraucanÃ­a","Los RÃ­os","Los Lagos","AysÃ©n","Magallanes"];
     const fallback = [
       {id:"d1",nombre_completo:"Persona DemostraciÃ³n Norte",cargo:"Diputada",partido:"Partido de ejemplo",region:"Antofagasta",institucion:"CÃ¡mara",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]},
@@ -561,7 +563,7 @@
       {id:"d6",nombre_completo:"Persona DemostraciÃ³n Valle",cargo:"Senadora",partido:"CoaliciÃ³n ejemplo",region:"Maule",institucion:"Senado",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]}
     ];
 
-    let people = [], filtered = [], selectedRegion = null, currentView = "territory", activeFilter = "all", apiAvailable = false;`r`n    let casesData = [], filteredCases = [], caseFilters = { estado_procesal: "all", tipo_alerta: "all" };
+    let people = [], filtered = [], selectedRegion = null, currentView = "territory", activeFilter = "all", apiAvailable = false;    let casesData = [], filteredCases = [], caseFilters = { estado_procesal: "all", tipo_alerta: "all" };
     let graphPayload = null, somPayload = null;
     const $ = selector => document.querySelector(selector);
     const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -603,8 +605,8 @@
       }));
       if (apiAvailable) {
         const [graphResult, somResult] = await Promise.allSettled([
-          fetch(`${API_BASE}/grafo?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
-          fetch(`${API_BASE}/analitica/som?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status))
+          fetch(`/api/grafo/?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
+          fetch(`/api/som/?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status))
         ]);
         if (graphResult.status === "fulfilled") graphPayload = graphResult.value;
         if (somResult.status === "fulfilled") somPayload = somResult.value;

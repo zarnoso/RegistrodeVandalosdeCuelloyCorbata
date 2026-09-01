@@ -1,16 +1,19 @@
-// Worker proxy para registrodevandalos.pages.dev
-// Redirige /api/* al backend
+// Worker proxy para Cloudflare Pages
+// Redirige /api/* al backend en localhost:8006
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     
-    if (url.pathname.startsWith('/api/')) {
-      // Redirect to the tunnel backend
-      return Response.redirect(`https://registro.mapadata.cl${url.pathname}${url.search}`, 302);
+    // Redirigir peticiones API al backend
+    if (url.pathname.startsWith('/api/') || url.pathname === '/health') {
+      return fetch('https://api.mapadata.cl' + url.pathname + url.search, {
+        method: request.method,
+        headers: request.headers,
+      });
     }
     
-    // Serve frontend
+    // Servir frontend estático
     return env.ASSETS.fetch(request);
   }
 };
