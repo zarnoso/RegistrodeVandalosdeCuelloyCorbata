@@ -1,83 +1,130 @@
 # Registro de Vándalos — Roadmap
 
-## Estado actual (2026-08-31)
+## Estado actual (2026-09-01)
 
 ### Completado
 
 | Tarea | Fecha |
 |---|---|
-| Frontend "Trama Pública" (Codex) | 2026-08-31 |
-| Backend adaptador (FastAPI) | 2026-08-31 |
-| Conexión a Neon DB (datos existentes) | 2026-08-31 |
-| Cloudflare Pages deploy | 2026-08-31 |
-| Cloudflare Tunnel (API) | 2026-08-31 |
-| **1. Búsqueda por aliases** | 2026-08-31 |
-| **2. Grafo de relaciones** | 2026-08-31 |
-| **3. Noticias con menciones** | 2026-08-31 |
-| **4. Extracción de entidades (NLP)** | 2026-08-31 |
+| Frontend Next.js básico | 2026-08-26 |
+| Frontend profesional UX/UI | 2026-08-26 |
+| Backend FastAPI (endpoints) | 2026-08-26 |
+| Worker Google Places | 2026-08-26 |
+| Tabla `scraping_jobs` en Neon | 2026-08-26 |
+| Tabla `comunas_chile` (347 comunas) | 2026-08-28 |
+| API endpoints funcionales | 2026-08-26 |
+| Worker loop con `FOR UPDATE SKIP LOCKED` | 2026-08-26 |
+| Extracción de emails desde webs | 2026-08-26 |
+| Deduplicación de resultados | 2026-08-26 |
+| Generación de CSV | 2026-08-26 |
+| Bucket R2 creado | 2026-08-27 |
+| Token R2 configurado | 2026-08-27 |
+| Backend corriendo en systemd | 2026-08-27 |
+| Worker corriendo en systemd | 2026-08-27 |
+| Token eliminado del historial de git | 2026-08-28 |
+| Repo GitHub limpio (sin secretos) | 2026-08-28 |
+| Cloudflare Tunnel creado | 2026-08-28 |
+| Registro DNS `api.mapata.cl` | 2026-08-28 |
+| Backend accesible vía tunnel | 2026-08-28 |
+| Google Places API Key configurada | 2026-08-28 |
+| Worker procesando jobs | 2026-08-28 |
+| DNS de DonWeb apuntando a Cloudflare | 2026-08-28 |
+| Auditoría de seguridad backend | 2026-08-28 |
+| Rate limiting + headers de seguridad | 2026-08-28 |
+| Frontend deployado en Cloudflare Pages | 2026-08-28 |
+| **Worker v5.0 — Mejoras de conciliación y rendimiento** | 2026-08-31 |
+| **Frontend v2 con filtros y diseño moderno** | 2026-09-01 |
+| **Backend v3 con caché, paginación y FK** | 2026-09-01 |
+| **Columna partido en Neon DB** | 2026-09-01 |
+| **Índices pg_trgm para búsquedas** | 2026-09-01 |
+| **Noticias con menciones** | 2026-09-01 |
+| **Relaciones por partido** | 2026-09-01 |
 
-### Detalle de mejoras implementadas:
+### Mejoras del Worker v5.0
 
-#### 1. Búsqueda por aliases ✅
-- Tabla `politicos_aliases` creada
-- Tipos: `amigo`, `hermano`, `pareja`, `socio`, `familiar`, `cercano`, `colaborador`, `otro`
-- Función SQL `buscar_por_alias(tipo, nombre)`
-- Endpoint: `/api/buscar/alias/?tipo=hermano&nombre=X`
-- Ejemplo: `/api/buscar/alias/?tipo=amigo&nombre=perez`
-
-#### 2. Grafo de relaciones ✅
-- Tabla `relaciones` creada con tipos: `familiar`, `amistad`, `negocios`, `político`, `mediatico`, `otro`
-- Endpoint: `/api/grafo/` para nodos y aristas
-- Endpoint: `/api/relaciones/?politico_id=X` para relaciones de un político
-- Visualización en el frontend: grafo SVG interactivo
-
-#### 3. Noticias con menciones ✅
-- Tabla `noticias_menciones` creada para vincular noticias con políticos
-- Endpoint: `/api/noticias/?busqueda=X` busca en título, contenido y políticos mencionados
-- Endpoint: `/api/noticias/{id}` muestra noticia con sus menciones
-- Tabla `familiares` para relaciones familiares documentadas
-
-#### 4. Extracción de entidades (NLP simple) ✅
-- Función Python `extraer_entidades(texto)` con regex
-- Patrones detectados:
-  - "X, hermano de Y" → tipo: familiar
-  - "X, amigo de Y" → tipo: amistad
-  - "X, socio de Y" → tipo: negocios
-  - "X, pareja de Y" → tipo: pareja
-- Endpoint: `/api/extraer-entidades/?texto=X`
-
-### Datos actuales
-
-| Tabla | Registros |
+| Mejora | Estado |
 |---|---|
-| politicos | 289 (200 diputados, 79 senadores, 10 investigados) |
-| casos_corrupcion | 128 |
-| noticias | 260 |
-| politicos_aliases | 20 |
-| familiares | 5 |
-| relaciones | 0 (pendiente poblar con datos reales) |
-| noticias_menciones | 0 (pendiente poblar) |
+| 1. ThreadPoolExecutor con lock para DDG (thread-safe) | ✅ |
+| 2. Checkpointing incremental por zona (resume tras caída) | ✅ |
+| 3. Pool de conexiones + reconexión automática Neon | ✅ |
+| 4. Dedup en SQL (memoria acotada) | ✅ |
+| 5. Errores informativos en DB (traceback) | ✅ |
+| 6. Graceful shutdown con signal handling | ✅ |
+| 7. Upload real a R2 (S3-compatible) | ✅ |
+| 8. Config validation al inicio (fail-fast) | ✅ |
+| 9. Health check endpoint | ✅ |
+| 10. Circuit breaker para Places API | ✅ |
+| 11. Enriquecimiento paralelizado (3 workers) | ✅ |
+| 12. Batch writes (cada 50 zonas) | ✅ |
+| 13. Límite de jobs concurrentes (2) | ✅ |
+| 14. Alertas Telegram en fallo | ✅ |
+| 15. Stale job detector (5 min) | ✅ |
 
 ---
 
 ## Próximos pasos (pendientes)
 
-| Tarea | Prioridad | Descripción |
+### Fase 2: Sistema de Relaciones y Noticias
+
+| Mejora | Descripción | Estado |
 |---|---|---|
-| Poblar relaciones | 🔴 Alta | Extraer vínculos de infoprobidad.cl |
-| Scraper de noticias | 🟡 Media | CIPER, El Mostrador, BioBioChile |
-| NLP avanzado | 🟡 Media | Usar LLM para extracción de entidades |
-| Admin dashboard | 🟢 Baja | Interfaz para administrar datos |
-| Alertas | 🟢 Baja | Notificar nuevos casos |
+| **1. Búsqueda por aliases** | Tabla de relaciones: "amigo de", "hermano de", "pareja de", "socio de" para detectar vínculos en búsquedas | ⏳ Pendiente |
+| **2. Scraping de noticias** | Buscar en CIPER, El Mostrador, BioBioChile menciones de políticos | ⏳ Pendiente |
+| **3. Extracción de entidades** | NLP/regex para detectar nombres de políticos en textos de noticias | ⏳ Pendiente |
+| **4. Grafo de relaciones** | Conectar políticos con sus redes (familiares, empresas, socios) en el grafo | ⏳ Pendiente |
+
+### Detalle de mejoras:
+
+#### 1. Búsqueda por aliases
+- Crear tabla `politicos_aliases` con: `politico_id`, `alias_tipo` (amigo, hermano, socio, etc.), `alias_nombre`, `fuente_url`
+- Endpoint: `/api/politicos/buscar/alias/{tipo}/{nombre}`
+- Ejemplo: `/api/politicos/buscar/alias/hermano/JuanPerez` → devuelve políticos relacionados
+
+#### 2. Scraping de noticias
+- Scrapers de CIPER, El Mostrador, BioBioChile, La Tercera
+- Buscar menciones: "amigo de [político]", "hermano de [político]", "cercano a [político]"
+- Almacenar en tabla `noticias_menciones` con: `noticia_id`, `politico_id`, `tipo_mencion`
+
+#### 3. Extracción de entidades
+- Regex para detectar: "X, hermano de Y", "X, amigo de Y", "X, socio de Y"
+- O usar LLM para extracción de entidades en noticias
+- Vincular menciones con políticos registrados
+
+#### 4. Grafo de relaciones
+- Tabla `relaciones` con: `politico_origen_id`, `politico_destino_id`, `tipo_relacion` (familiar, amistad, negocios, etc.), `fuente_url`
+- Endpoint: `/api/politicos/grafo?incluir_relaciones=true`
+- Visualizar en el frontend: nodos conectados por aristas de colores según tipo
+
+---
+
+## En progreso
+
+| Tarea | Estado | Notas |
+|---|---|---|
+| Implementar aliases de políticos | ⏳ | En cola |
+| Scraping de noticias con menciones | ⏳ | En cola |
+| Extracción de entidades NLP | ⏳ | En cola |
+| Grafo de relaciones | ⏳ | En cola |
+
+---
+
+## Próximos pasos inmediatos
+
+1. **Implementar búsqueda por aliases** (tabla + endpoint)
+2. **Agregar scraping de noticias** (CIPER, El Mostrador)
+3. **Crear tabla de relaciones** (familiares, socios, amigos)
+4. **Actualizar grafo** para mostrar relaciones
 
 ---
 
 ## Notas técnicas
 
-- Backend: Python 3.11+ con FastAPI
-- Base de datos: Neon (PostgreSQL)
-- Frontend: HTML vanilla + CSS + JS (sin framework)
-- Cloudflare Pages para frontend estático
-- Cloudflare Tunnel para API
-- Diseño: "Trama Pública" (tipografía Manrope/Newsreader/DM Mono)
-- Colores: Verde teal (#087f73), azul cobalto (#315aa8), ámbar (#d18a23)
+- El worker usa `FOR UPDATE SKIP LOCKED` para concurrencia
+- Google Places API tiene límite de 60 resultados por query
+- Se recomienda no exceder 2000 queries por job (costo ~$34 USD)
+- Los CSVs se generan con UTF-8 BOM para compatibilidad con Excel
+- El sistema respeta rate limits de Google (2s entre páginas, 0.1s entre detalles)
+- El backend corre en Python 3.11 (evita problemas con psycopg2 en 3.13)
+- El worker v5.0 incluye: paralelización, checkpointing, circuit breaker, batch writes
+- Health check endpoint: http://localhost:8002/health
+- Alertas Telegram configurables vía `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`
