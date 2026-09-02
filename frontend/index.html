@@ -1060,7 +1060,15 @@
         <section class="detail-section"><h3>Cronología y fuentes</h3>
           ${events.length?events.map(e=>{const processState=["absuelto","sobreseido","archivado"].includes(String(e.estado_actual||"").toLowerCase())?"cerrado_sin_condena":["en_revisión","investigado","formalizado"].includes(String(e.estado_actual||"").toLowerCase())?"abierto":String(e.estado_actual||"").toLowerCase()==="condenado"?"condenado":"sin_estado";const badgeClass=processState==="condenado"?"convicted":processState==="cerrado_sin_condena"?"closed":"open";return `<article class="event"><time>${escapeHtml(e.fecha_inicio||"Fecha no informada")}</time><strong>${escapeHtml(e.caso_nombre||"Antecedente")}</strong><p>${escapeHtml(e.resumen||"Sin resumen.")}</p><p><b>Estado:</b> ${escapeHtml(e.estado_actual||"no informado")} · <b>Fuente:</b> ${escapeHtml(e.fuente||"no informada")}</p><div class="state-badge ${badgeClass}"><span>Lectura metodológica:</span><strong>${escapeHtml(formatProcessState(processState))}</strong></div></article>`;}).join(""):`<div class="empty">No existen antecedentes asociados en la base actual.</div>`}
         </section>
-        <section class="detail-section"><h3>Entorno cercano</h3>
+        <section class="detail-section"><h3>Noticias relacionadas</h3>
+          ${p.noticias && p.noticias.length ? p.noticias.map(n => `
+            <article class="event">
+              <time>${escapeHtml(n.fecha_publicacion || "—")}</time>
+              <strong>${escapeHtml(n.titulo)}</strong>
+              <p>🔗 <a href="${escapeHtml(n.url)}" target="_blank" style="color:var(--teal)">Ver en ${escapeHtml(n.fuente)}</a></p>
+              <p>📰 Fuente: ${escapeHtml(n.fuente)}</p>
+            </article>`).join("") : `<div class="empty">Sin noticias registradas.</div>`}
+        </section>
           ${(p.familiares&&p.familiares.length)?p.familiares.map(f=>{
             const casos=f.casos||[];
             const flag=casos.length?`<div class="state-badge convicted" style="margin-top:6px"><span>⚠ Vínculo con antecedentes</span><strong>${casos.length} caso(s) registrado(s) a nombre de esta persona</strong></div>`:"";

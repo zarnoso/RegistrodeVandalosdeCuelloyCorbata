@@ -288,6 +288,17 @@ def detalle_politico(politico_id: int):
     except Exception:
         patrimonios = []
 
+    # Noticias donde aparece mencionado
+    cur.execute("""
+        SELECT n.id, n.titulo, n.fuente, n.fecha_publicacion, n.url, nm.contexto
+        FROM noticias n
+        JOIN noticias_menciones nm ON n.id = nm.noticia_id
+        WHERE nm.politico_id = %s
+        ORDER BY n.fecha_publicacion DESC
+        LIMIT 20
+    """, (politico_id,))
+    noticias = [dict(row) for row in cur.fetchall()]
+
     cur.close()
     conn.close()
 
@@ -303,11 +314,13 @@ def detalle_politico(politico_id: int):
         "num_eventos": casos_count,
         "num_familiares": len(familiares),
         "num_empresas": len(patrimonios),
+        "num_noticias": len(noticias),
         "casos_familiares": casos_familiares,
         "eventos": eventos,
         "familiares": familiares,
         "aliases": aliases,
         "patrimonios": patrimonios,
+        "noticias": noticias,
     }
 
 @app.get("/api/buscar/alias/")
