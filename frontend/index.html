@@ -292,6 +292,25 @@
       background-size: 28px 28px;
     }
     .viz svg { width: 100%; height: 100%; display: block; }
+    .funcionarios-list {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      overflow-y: auto;
+      align-content: start;
+    }
+    .badge-funcionario {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--cobalt);
+      color: white;
+      font: 700 9px "DM Mono", monospace;
+      flex: 0 0 auto;
+    }
+    .person-funcionario .avatar { background: var(--cobalt) !important; }
     .legend {
       position: absolute;
       left: 16px;
@@ -571,6 +590,7 @@
             <div class="hint" id="vizHint">Pasa el cursor sobre una región y selecciónala para filtrar la lista.</div>
             <div class="legend"><span><i style="background:#087f73"></i>sin registros</span><span><i style="background:#d18a23"></i>en revisión</span><span><i style="background:#b94d4a"></i>formalizado</span></div>
           </div>
+          <div class="viz funcionarios-list" id="funcionariosList" hidden></div>
         </div>
         <aside class="results">
           <div class="results-head"><strong id="resultsTitle">Autoridades</strong><span id="resultsCount">0 resultados</span></div>
@@ -648,12 +668,12 @@
         const [graphResult, somResult, funcResult] = await Promise.allSettled([
           fetch(`${BACKEND_ORIGIN}/api/politicos/grafo?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
           fetch(`${BACKEND_ORIGIN}/api/politicos/analitica/som?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
-          fetch(`/api/funcionarios/?limit=100`).then(r => r.ok ? r.json() : Promise.reject(r.status))
+          fetch(`${BACKEND_ORIGIN}/api/funcionarios/?limit=100`).then(r => r.ok ? r.json() : Promise.reject(r.status))
         ]);
         if (graphResult.status === "fulfilled") graphPayload = graphResult.value;
         if (somResult.status === "fulfilled") somPayload = somResult.value;
         if (funcResult.status === "fulfilled") {
-          funcionarios = funcResult.data || [];
+          funcionarios = funcResult.value.data || [];
         }
       }
       updateMetrics();
@@ -725,13 +745,15 @@
 
     function renderViz() {
       const svg = $("#vizSvg");
+      const funcList = $("#funcionariosList");
+      const isFuncView = currentView === "funcionarios";
+      $("#viz").hidden = isFuncView;
+      if (funcList) funcList.hidden = !isFuncView;
+      if (isFuncView) { renderFuncionariosList(); return; }
       svg.replaceChildren();
       if (currentView === "territory") renderTerritory(svg);
       if (currentView === "network") renderNetwork(svg);
-      if (currentView === "funcionarios") {
-        renderFuncionariosList();
-        return;
-      }
+      if (currentView === "som") renderSom(svg);
     }
 
     function renderFuncionariosList() {
@@ -757,7 +779,7 @@
     async function openFuncionario(id) {
       if (!apiAvailable) return;
       try {
-        const res = await fetch(`/api/funcionarios/${id}`);
+        const res = await fetch(`${BACKEND_ORIGIN}/api/funcionarios/${id}`);
         if (!res.ok) return;
         const f = await res.json();
         const eventos = f.casos_propios?.length ? f.casos_propios : f.casos_menciones || [];

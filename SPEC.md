@@ -340,3 +340,16 @@ registro-devandalos/
 **Pendiente:**
 - Los 15 partidos políticos faltantes y el diseño de la estructura para "personas que trabajan para el gobierno" (no electas) quedan a la espera de que el usuario defina/pueble los datos en Neon — sin acceso de red a la BD desde este entorno no se puede avanzar ese punto.
 
+### 2026-09-02 — Avance del usuario: partidos poblados + tabla funcionarios_gobierno (con 3 bugs corregidos)
+
+**Avance del usuario (commits `df6cc20`, `e23f5c6`):** 15 partidos reales poblados en `politicos.partido`; nuevas tablas `patrimonio` (30), `pasivos` (26), `actividades` (27), `empresas` (12), `vinculos_empresariales` (13); nueva tabla `funcionarios_gobierno` con 20 funcionarios reales; `casos_corrupcion.politico_id` (FK) agregada y poblada para 15/128 casos (el resto sigue con `NULL`, matcheable solo por `ILIKE` sobre `responsable`); 3 endpoints nuevos (`/api/funcionarios/`, `/api/funcionarios/{id}`, `/api/funcionarios/instituciones/`) y nueva vista "Funcionarios" en el frontend.
+
+**Bugs encontrados y corregidos en la revisión:**
+- Mismo bug de orden de rutas que ya se había dado antes: `/api/funcionarios/{funcionario_id}` estaba declarado antes que `/api/funcionarios/instituciones/` — el filtro por institución nunca habría cargado. Reordenado.
+- 2 rutas relativas fijas reintroducidas (`/api/funcionarios/?limit=100`, `/api/funcionarios/{id}`) sin `BACKEND_ORIGIN` — rompían en Cloudflare Pages igual que los bugs anteriores de esta clase.
+- Bug de lectura de `Promise.allSettled`: `funcResult.data` no existe en ese objeto (tiene `.status`/`.value`), debía ser `funcResult.value.data` — `funcionarios` quedaba siempre vacío pese a que la petición funcionaba.
+- Contenedor `#funcionariosList` no existía en el HTML — `renderFuncionariosList()` lanzaba `TypeError` al hacer clic en la vista "Funcionarios", rompiendo esa sección completa. Agregado el contenedor y ajustada `renderViz()` para mostrar/ocultar entre el SVG y la lista de funcionarios según la vista activa.
+- Sin estilos definidos para `.person-funcionario`/`.badge-funcionario`/`.funcionarios-list` — agregados, reutilizando la paleta existente (`--cobalt` para distinguir funcionarios de políticos).
+
+**Confirmado con el usuario, no era bug:** `casos_corrupcion.politico_id` sí existe como FK real; el endpoint de detalle de funcionario usa tanto esa FK como el `ILIKE` por nombre como respaldo, sin riesgo de perder los 113 casos aún sin FK asignada.
+

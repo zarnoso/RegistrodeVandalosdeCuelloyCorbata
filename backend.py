@@ -406,6 +406,21 @@ def listar_funcionarios(institucion: str = None, limit: int = 100, skip: int = 0
         "skip": skip
     }
 
+@app.get("/api/funcionarios/instituciones/")
+def lista_instituciones():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT DISTINCT institucion, COUNT(*) as total
+        FROM funcionarios_gobierno
+        GROUP BY institucion
+        ORDER BY total DESC
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"institucion": r['institucion'], "total": r['total']} for r in rows]
+
 @app.get("/api/funcionarios/{funcionario_id}")
 def detalle_funcionario(funcionario_id: int):
     conn = get_db()
@@ -449,21 +464,6 @@ def detalle_funcionario(funcionario_id: int):
     cur.close()
     conn.close()
     return result
-
-@app.get("/api/funcionarios/instituciones/")
-def lista_instituciones():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT DISTINCT institucion, COUNT(*) as total
-        FROM funcionarios_gobierno
-        GROUP BY institucion
-        ORDER BY total DESC
-    """)
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    return [{"institucion": r['institucion'], "total": r['total']} for r in rows]
 
 if __name__ == "__main__":
     import uvicorn
