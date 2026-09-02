@@ -519,7 +519,9 @@
       <nav class="nav" aria-label="Vistas principales">
         <button class="active" data-view="territory"><span class="nav-icon">CL</span><span>Territorio</span></button>
         <button data-view="network"><span class="nav-icon"></span><span>Relaciones</span></button>
-        <button data-view="som"><span class="nav-icon"></span><span>Similitudes SOM</span></button>        <button data-view="cases"><span class="nav-icon">CS</span><span>Casos</span></button>
+        <button data-view="som"><span class="nav-icon"></span><span>Similitudes SOM</span></button>
+        <button data-view="cases"><span class="nav-icon">CS</span><span>Casos</span></button>
+        <button data-view="funcionarios"><span class="nav-icon">FG</span><span>Funcionarios</span></button>
       </nav>
       <div class="method-note">
         <strong>Lectura responsable</strong>
@@ -602,7 +604,7 @@
     ];
 
     let people = [], filtered = [], selectedRegion = null, currentView = "territory", activeFilter = "all", apiAvailable = false;    let casesData = [], filteredCases = [], caseFilters = { estado_procesal: "all", tipo_alerta: "all" };
-    let graphPayload = null, somPayload = null, aliasMatches = [], aliasSearchToken = 0;
+    let graphPayload = null, somPayload = null, aliasMatches = [], aliasSearchToken = 0, funcionarios = [];
     const $ = selector => document.querySelector(selector);
     const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
     const initials = name => name.split(/\s+/).filter(Boolean).map(x => x[0]).join("").slice(0,2).toUpperCase();
@@ -643,12 +645,16 @@
         num_familiares: Number(p.num_familiares || 0)
       }));
       if (apiAvailable) {
-        const [graphResult, somResult] = await Promise.allSettled([
+        const [graphResult, somResult, funcResult] = await Promise.allSettled([
           fetch(`${BACKEND_ORIGIN}/api/politicos/grafo?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
-          fetch(`${BACKEND_ORIGIN}/api/politicos/analitica/som?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status))
+          fetch(`${BACKEND_ORIGIN}/api/politicos/analitica/som?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
+          fetch(`/api/funcionarios/?limit=100`).then(r => r.ok ? r.json() : Promise.reject(r.status))
         ]);
         if (graphResult.status === "fulfilled") graphPayload = graphResult.value;
         if (somResult.status === "fulfilled") somPayload = somResult.value;
+        if (funcResult.status === "fulfilled") {
+          funcionarios = funcResult.data || [];
+        }
       }
       updateMetrics();
       applyFilters();
@@ -722,7 +728,72 @@
       svg.replaceChildren();
       if (currentView === "territory") renderTerritory(svg);
       if (currentView === "network") renderNetwork(svg);
-      if (currentView === "som") renderSom(svg);
+      if (currentView === "funcionarios") {
+        renderFuncionariosList();
+        return;
+      }
+    }
+
+    function renderFuncionariosList() {
+      const list = $("#funcionariosList");
+      if (!funcionarios || !funcionarios.length) {
+        list.innerHTML = '<div class="empty">Sin funcionarios registrados</div>';
+        return;
+      }
+      list.innerHTML = funcionarios.map(f => `
+        <button class="person person-funcionario" data-funcionario="${f.id}">
+          <span class="avatar" style="background:#315aa8">${escapeHtml(initials(f.nombre_completo))}</span>
+          <span>
+            <span class="person-name">${escapeHtml(f.nombre_completo)}</span>
+            <span class="person-meta">${escapeHtml(f.cargo)} · ${escapeHtml(f.institucion)}</span>
+            <span class="person-meta">${escapeHtml(f.dependencia_jerarquica || "—")}</span>
+          </span>
+          <span class="badge-funcionario" title="Funcionario de Gobierno">FG</span>
+        </button>`).join("");
+      document.querySelectorAll("[data-funcionario]").forEach(btn =>
+        btn.addEventListener("click", () => openFuncionario(btn.dataset.funcionario)));
+    }
+
+    async function openFuncionario(id) {
+      if (!apiAvailable) return;
+      try {
+        const res = await fetch(`/api/funcionarios/${id}`);
+        if (!res.ok) return;
+        const f = await res.json();
+        const eventos = f.casos_propios?.length ? f.casos_propios : f.casos_menciones || [];
+        const stateClass = eventos.length ? "open" : "closed";
+        $("#drawerContent").innerHTML = `
+          <header class="profile-head">
+            <span class="eyebrow">${escapeHtml(f.institucion)}</span>
+            <h2 id="profileName">${escapeHtml(f.nombre_completo)}</h2>
+            <p>${escapeHtml(f.cargo)} · Designación: ${escapeHtml(f.fecha_designacion || "—")}</p>
+          </header>
+          <div class="disclaimer">Este registro documenta a un funcionario designado, no electo. Puede tener vínculos con políticos si la fuente lo documenta.</div>
+          <section class="detail-section"><h3>Datos de designación</h3><div class="detail-grid">
+            <div class="detail-stat"><b>${escapeHtml(f.institucion)}</b><span>Institución</span></div>
+            <div class="detail-stat"><b>${escapeHtml(f.cargo)}</b><span>Cargo</span></div>
+            <div class="detail-stat"><b>${escapeHtml(f.fecha_designacion || "—")}</b><span>Fecha designación</span></div>
+            <div class="detail-stat"><b>${(f.familiares?.length || 0)}</b><span>Familiares registrados</span></div>
+          </div></section>
+          ${eventos.length ? `<section class="detail-section"><h3>Antecedentes relacionados</h3>${eventos.map(e => `
+            <article class="event">
+              <time>${escapeHtml(e.fecha_inicio || "—")}</time>
+              <strong>${escapeHtml(e.caso_nombre || "Antecedente")}</strong>
+              <p>${escapeHtml(e.resumen || "Sin resumen.")}</p>
+              <b>Fuente:</b> ${escapeHtml(e.fuente || "—")}
+            </article>`).join("")}</section>` : '<div class="empty">No hay antecedentes registrados.</div>'}
+          ${f.familiares?.length ? `<section class="detail-section"><h3>Familiares</h3>${f.familiares.map(fam => `
+            <article class="event">
+              <strong>${escapeHtml(fam.nombre_completo)}</strong>
+              <p>${escapeHtml(fam.parentesco || "—")}</p>
+            </article>`).join("")}</section>` : ''}
+          ${f.fuente_url ? `<p style="margin-top:24px;font-size:12px;color:var(--muted)">Fuente: <a href="${escapeHtml(f.fuente_url)}" target="_blank" style="color:var(--teal)">${escapeHtml(f.fuente_url)}</a></p>` : ''}
+        `;
+        $("#drawerBackdrop").classList.add("open");
+        $("#drawerClose").focus();
+      } catch (err) {
+        console.error("Error cargando funcionario:", err);
+      }
     }
 
     function renderTerritory(svg) {
@@ -983,7 +1054,8 @@
     const viewText={
       territory:{eyebrow:"Lectura territorial",title:'El poder deja una <em>trama.</em>',copy:"Explora autoridades, antecedentes públicos y conexiones declaradas sin perder de vista el territorio ni el estado de cada fuente.",note:"Selecciona una región de la columna chilena. El tamaño de cada marca resume la cantidad de autoridades registradas, no su nivel de riesgo.",panel:"Autoridades por territorio",panelEye:"Chile longitudinal",hint:"Pasa el cursor sobre una región y selecciónala para filtrar la lista."},
       network:{eyebrow:"Relaciones declaradas",title:'Ningún registro existe <em>aislado.</em>',copy:"Observa cómo autoridades, empresas, familiares y antecedentes comparten una red de vínculos explícitos y verificables.",note:"Cada línea representa una relación registrada. Su proximidad visual no implica coordinación, asociación ilícita ni responsabilidad compartida.",panel:"Grafo de relaciones",panelEye:"Vínculos explícitos",hint:"Selecciona un nodo para abrir su ficha. El grosor resume vínculos registrados."},
-      som:{eyebrow:"Exploración estadística",title:'Parecidos no significa <em>relacionados.</em>',copy:"El mapa autoorganizado agrupa perfiles con variables similares para descubrir patrones que una lista tradicional no muestra.",note:"El SOM es exploratorio: la cercanía indica similitud matemática entre atributos, no parentesco, colaboración ni culpabilidad.",panel:"Mapa de similitudes",panelEye:"SOM exploratorio",hint:"Cada celda agrupa perfiles parecidos. Selecciona un punto para entender sus datos originales."}
+      som:{eyebrow:"Exploración estadística",title:'Parecidos no significa <em>relacionados.</em>',copy:"El mapa autoorganizado agrupa perfiles con variables similares para descubrir patrones que una lista tradicional no muestra.",note:"El SOM es exploratorio: la cercanía indica similitud matemática entre atributos, no parentesco, colaboración ni culpabilidad.",panel:"Mapa de similitudes",panelEye:"SOM exploratorio",hint:"Cada celda agrupa perfiles parecidos. Selecciona un punto para entender sus datos originales."},
+      funcionarios:{eyebrow:"Funcionarios de Gobierno",title:'Quién <em>administra</em> el Estado',copy:"Identifica a personas que trabajan para el gobierno como funcionarios públicos, separadas de políticos electos.",note:"Los funcionarios son designados, no electos. Pueden tener vínculos con políticos si la fuente lo documenta.",panel:"Funcionarios registrados",panelEye:"Designación pública",hint:"Usa el filtro para distinguir entre políticos electos y funcionarios de gobierno."}
     };
 
     document.querySelectorAll(".nav button").forEach(btn=>btn.addEventListener("click",()=>{

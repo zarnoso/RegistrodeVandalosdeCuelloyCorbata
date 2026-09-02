@@ -362,9 +362,108 @@ def stats():
     rel = cur.fetchone()['total']
     cur.execute("SELECT COUNT(*) as total FROM familiares")
     fam = cur.fetchone()['total']
+    cur.execute("SELECT COUNT(*) as total FROM funcionarios_gobierno")
+    fun = cur.fetchone()['total']
     cur.close()
     conn.close()
-    return {"politicos": p, "casos": c, "noticias": n, "relaciones": rel, "familiares": fam}
+    return {"politicos": p, "casos": c, "noticias": n, "relaciones": rel, "familiares": fam, "funcionarios": fun}
+
+# =============================================================================
+# PUNTO 4: Endpoints de Funcionarios de Gobierno
+# =============================================================================
+@app.get("/api/funcionarios/")
+def listar_funcionarios(institucion: str = None, limit: int = 100, skip: int = 0):
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Total count
+    cur.execute("SELECT COUNT(*) as total FROM funcionarios_gobierno")
+    total_count = cur.fetchone()['total']
+    
+    # Query con filtro opcional
+    if institucion:
+        cur.execute("""
+            SELECT * FROM funcionarios_gobierno
+            WHERE institucion ILIKE %s
+            ORDER BY nombre_completo
+            LIMIT %s OFFSET %s
+        """, (f"%{institucion}%", limit, skip))
+    else:
+        cur.execute("""
+            SELECT * FROM funcionarios_gobierno
+            ORDER BY nombre_completo
+            LIMIT %s OFFSET %s
+        """, (limit, skip))
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    return {
+        "data": [dict(r) for r in rows],
+        "total": total_count,
+        "limit": limit,
+        "skip": skip
+    }
+
+@app.get("/api/funcionarios/{funcionario_id}")
+def detalle_funcionario(funcionario_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("SELECT * FROM funcionarios_gobierno WHERE id = %s", (funcionario_id,))
+    row = cur.fetchone()
+    
+    if not row:
+        cur.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Funcionario no encontrado")
+    
+    result = dict(row)
+    
+    # Si el funcionario está vinculado a un político, incluir info de casos
+    if row['politico_id']:
+        cur.execute("SELECT * FROM casos_corrupcion WHERE politico_id = %s", (row['politico_id'],))
+        result['casos_propios'] = [dict(c) for c in cur.fetchall()]
+    else:
+        result['casos_propios'] = []
+    
+    # Buscar casos por nombre del funcionario
+    cur.execute("""
+        SELECT caso_nombre, fecha_inicio, estado_actual, resumen, fuente
+        FROM casos_corrupcion
+        WHERE responsable ILIKE %s
+    """, (f"%{row['nombre_completo']}%",))
+    result['casos_menciones'] = [dict(c) for c in cur.fetchall()]
+    
+    # Casos de familiares (si está vinculado a político)
+    result['familiares'] = []
+    if row['politico_id']:
+        cur.execute("""
+            SELECT nombre_completo, parentesco, fuente_url
+            FROM familiares
+            WHERE politico_id = %s
+        """, (row['politico_id'],))
+        result['familiares'] = [dict(f) for f in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    return result
+
+@app.get("/api/funcionarios/instituciones/")
+def lista_instituciones():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT DISTINCT institucion, COUNT(*) as total
+        FROM funcionarios_gobierno
+        GROUP BY institucion
+        ORDER BY total DESC
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"institucion": r['institucion'], "total": r['total']} for r in rows]
 
 if __name__ == "__main__":
     import uvicorn
