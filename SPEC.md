@@ -308,3 +308,8 @@ registro-devandalos/
 - Corregido "uble" → "Ñuble" en `REGION_ORDER` (mojibake residual, la región no aparecía filtrable correctamente).
 - El grafo de "Relaciones" ahora puede mostrar familiares aunque `relaciones` siga vacía — usa `familiares`, que sí tiene datos.
 
+### 2026-09-01 — Fix crítico: orden de rutas rompía /grafo y /analitica/som
+
+**Backend (`backend.py`):**
+- `/api/politicos/{politico_id}` estaba registrado antes que `/api/politicos/grafo` y `/api/politicos/analitica/som`. FastAPI resuelve rutas por orden de declaración, así que toda petición a `/grafo` o `/analitica/som` intentaba convertir el string a `int` para `politico_id` y fallaba con 422 antes de llegar al endpoint real — el grafo y el mapa SOM nunca respondían en producción. Reordenado: rutas específicas primero, ruta con parámetro dinámico al final.
+

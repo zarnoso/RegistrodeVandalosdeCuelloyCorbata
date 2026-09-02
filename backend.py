@@ -138,6 +138,84 @@ def listar_politicos(limit: int = 500, skip: int = 0):
     conn.close()
     return resultado
 
+@app.get("/api/politicos/grafo")
+def grafo(limit: int = 250):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT p.id, p.nombre_completo, p.tipo, p.region,
+               COALESCE(cc.casos_count, 0) AS casos_count
+        FROM politicos p
+        LEFT JOIN (
+            SELECT responsable, COUNT(*) AS casos_count
+            FROM casos_corrupcion
+            GROUP BY responsable
+        ) cc ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
+        LIMIT %s
+    """, (limit,))
+    politico_rows = cur.fetchall()
+
+    nodes = [{
+        "id": f"politico:{r['id']}",
+        "tipo": "politico",
+        "etiqueta": r['nombre_completo'],
+        "metadata": {"region": r['region'], "estado": "condenado" if r['casos_count'] > 2 else ("abierto" if r['casos_count'] > 0 else "sin_estado")},
+    } for r in politico_rows]
+    politico_ids = [r['id'] for r in politico_rows]
+
+    edges = []
+
+    # Relaciones declaradas entre políticos (tabla relaciones — hoy vacía, listo para cuando se pueble)
+    cur.execute("SELECT politico_origen_id, politico_destino_id, tipo_relacion FROM relaciones WHERE activo = true LIMIT 200")
+    for r in cur.fetchall():
+        edges.append({"origen": f"politico:{r['politico_origen_id']}", "destino": f"politico:{r['politico_destino_id']}", "tipo": r['tipo_relacion']})
+
+    # Familiares como nodos propios + arista al político — dato que sí existe hoy
+    if politico_ids:
+        cur.execute("""
+            SELECT id, politico_id, nombre_completo, parentesco
+            FROM familiares
+            WHERE politico_id = ANY(%s)
+        """, (politico_ids,))
+        for f in cur.fetchall():
+            fam_node_id = f"familiar:{f['id']}"
+            cur.execute("SELECT COUNT(*) AS total FROM casos_corrupcion WHERE responsable ILIKE %s", (f"%{f['nombre_completo']}%",))
+            fam_casos = cur.fetchone()['total'] or 0
+            nodes.append({
+                "id": fam_node_id,
+                "tipo": "familiar",
+                "etiqueta": f['nombre_completo'],
+                "metadata": {"parentesco": f['parentesco'], "estado": "condenado" if fam_casos > 2 else ("abierto" if fam_casos > 0 else "sin_estado")},
+            })
+            edges.append({"origen": f"politico:{f['politico_id']}", "destino": fam_node_id, "tipo": f['parentesco'] or "familiar"})
+
+    cur.close()
+    conn.close()
+    return {"nodes": nodes, "edges": edges}
+
+@app.get("/api/politicos/analitica/som")
+def som(limit: int = 500):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, nombre_completo, tipo, region FROM politicos LIMIT %s", (limit,))
+    rows = cur.fetchall()
+    puntos = []
+    for r in rows:
+        cur.execute("SELECT COUNT(*) as total FROM casos_corrupcion WHERE responsable ILIKE %s", (f"%{r['nombre_completo']}%",))
+        casos = cur.fetchone()['total'] or 0
+        puntos.append({
+            "id": r['id'],
+            "nombre": r['nombre_completo'],
+            "tipo": r['tipo'],
+            "region": r['region'],
+            "score_riesgo": min(1.0, casos * 0.3),
+            "total_casos": casos
+        })
+    cur.close()
+    conn.close()
+    return {"puntos": puntos}
+
 @app.get("/api/politicos/{politico_id}")
 def detalle_politico(politico_id: int):
     conn = get_db()
@@ -241,84 +319,6 @@ def buscar_por_alias(nombre: str, tipo: str = None):
     cur.close()
     conn.close()
     return resultado
-
-@app.get("/api/politicos/grafo")
-def grafo(limit: int = 250):
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT p.id, p.nombre_completo, p.tipo, p.region,
-               COALESCE(cc.casos_count, 0) AS casos_count
-        FROM politicos p
-        LEFT JOIN (
-            SELECT responsable, COUNT(*) AS casos_count
-            FROM casos_corrupcion
-            GROUP BY responsable
-        ) cc ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
-        LIMIT %s
-    """, (limit,))
-    politico_rows = cur.fetchall()
-
-    nodes = [{
-        "id": f"politico:{r['id']}",
-        "tipo": "politico",
-        "etiqueta": r['nombre_completo'],
-        "metadata": {"region": r['region'], "estado": "condenado" if r['casos_count'] > 2 else ("abierto" if r['casos_count'] > 0 else "sin_estado")},
-    } for r in politico_rows]
-    politico_ids = [r['id'] for r in politico_rows]
-
-    edges = []
-
-    # Relaciones declaradas entre políticos (tabla relaciones — hoy vacía, listo para cuando se pueble)
-    cur.execute("SELECT politico_origen_id, politico_destino_id, tipo_relacion FROM relaciones WHERE activo = true LIMIT 200")
-    for r in cur.fetchall():
-        edges.append({"origen": f"politico:{r['politico_origen_id']}", "destino": f"politico:{r['politico_destino_id']}", "tipo": r['tipo_relacion']})
-
-    # Familiares como nodos propios + arista al político — dato que sí existe hoy
-    if politico_ids:
-        cur.execute("""
-            SELECT id, politico_id, nombre_completo, parentesco
-            FROM familiares
-            WHERE politico_id = ANY(%s)
-        """, (politico_ids,))
-        for f in cur.fetchall():
-            fam_node_id = f"familiar:{f['id']}"
-            cur.execute("SELECT COUNT(*) AS total FROM casos_corrupcion WHERE responsable ILIKE %s", (f"%{f['nombre_completo']}%",))
-            fam_casos = cur.fetchone()['total'] or 0
-            nodes.append({
-                "id": fam_node_id,
-                "tipo": "familiar",
-                "etiqueta": f['nombre_completo'],
-                "metadata": {"parentesco": f['parentesco'], "estado": "condenado" if fam_casos > 2 else ("abierto" if fam_casos > 0 else "sin_estado")},
-            })
-            edges.append({"origen": f"politico:{f['politico_id']}", "destino": fam_node_id, "tipo": f['parentesco'] or "familiar"})
-
-    cur.close()
-    conn.close()
-    return {"nodes": nodes, "edges": edges}
-
-@app.get("/api/politicos/analitica/som")
-def som(limit: int = 500):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, nombre_completo, tipo, region FROM politicos LIMIT %s", (limit,))
-    rows = cur.fetchall()
-    puntos = []
-    for r in rows:
-        cur.execute("SELECT COUNT(*) as total FROM casos_corrupcion WHERE responsable ILIKE %s", (f"%{r['nombre_completo']}%",))
-        casos = cur.fetchone()['total'] or 0
-        puntos.append({
-            "id": r['id'],
-            "nombre": r['nombre_completo'],
-            "tipo": r['tipo'],
-            "region": r['region'],
-            "score_riesgo": min(1.0, casos * 0.3),
-            "total_casos": casos
-        })
-    cur.close()
-    conn.close()
-    return {"puntos": puntos}
 
 @app.get("/api/casos/")
 def casos(limit: int = 100, skip: int = 0):
