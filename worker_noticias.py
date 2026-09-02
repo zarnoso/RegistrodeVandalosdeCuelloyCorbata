@@ -64,20 +64,31 @@ FUENTES = {
         "selector_contenido": ".contenido-noticia, .cuerpo-noticia, article",
         "selector_fecha": "time, .fecha",
         "selector_autor": ".autor",
+        "parser": "regex",
     },
     "el_mostrador": {
         "nombre": "El Mostrador",
-        "rss": "https://www.elmostrador.cl/",
+        "rss": "https://www.elmostrador.cl/noticias/",
         "base_url": "https://www.elmostrador.cl",
         "selector_titulo": "h1.titulo, h1.entry-title, h1",
         "selector_contenido": ".cuerpo-noticia, .contenido, .entry-content, article",
         "selector_fecha": "span.fecha, time, .date",
         "selector_autor": ".autor, .author",
-        "scrapear_directo": True,
-        "url_noticias": [
+        "scrapear_links": True,
+        "base_links": [
             "https://www.elmostrador.cl/noticias/",
             "https://www.elmostrador.cl/reportajes/",
         ],
+    },
+    "ellibero": {
+        "nombre": "El Líbero",
+        "rss": "https://ellibero.cl/feed/",
+        "base_url": "https://ellibero.cl",
+        "selector_titulo": "h1, .entry-title, .titulo",
+        "selector_contenido": ".contenido, .cuerpo, article, .entry-content, .contenido-noticia",
+        "selector_fecha": "time, .fecha, .date",
+        "selector_autor": ".autor, .author",
+        "redirect_handler": True,
     },
     "biobiochile": {
         "nombre": "BioBioChile",
@@ -365,7 +376,21 @@ def scrapear_feed(fuente_key):
     
     try:
         headers = {"User-Agent": obtener_user_agent()}
-        resp = requests.get(fuente["rss"], headers=headers, timeout=SCRAPE_TIMEOUT)
+        
+        # Caso especial: scrapear links directos (El Mostrador)
+        if fuente.get("scrapear_links"):
+            return _scrapear_links_directos(fuente, headers)
+        
+        # Caso especial: parser regex para feeds rotos (CIPER)
+        if fuente.get("parser") == "regex":
+            return _scrapear_feed_regex(fuente, headers)
+        
+        # Caso especial: manejar redirects (El Líbero)
+        session = requests.Session()
+        if fuente.get("redirect_handler"):
+            session.max_redirects = 10
+        
+        resp = session.get(fuente["rss"], headers=headers, timeout=SCRAPE_TIMEOUT)
         if resp.status_code != 200:
             print(f"  ⚠️ {fuente['nombre']}: HTTP {resp.status_code}")
             return []
@@ -398,6 +423,82 @@ def scrapear_feed(fuente_key):
         _registrar_error()
         print(f"  ❌ Error scrapeando {fuente['nombre']}: {e}")
         return []
+
+
+def _scrapear_feed_regex(fuente, headers):
+    """Scrapea un feed RSS con regex (para feeds que feedparser no puede parsear)."""
+    resp = requests.get(fuente["rss"], headers=headers, timeout=SCRAPE_TIMEOUT)
+    if resp.status_code != 200:
+        return []
+    
+    articulos = []
+    # Buscar items con regex
+    items = re.findall(r'<item>(.*?)</item>', resp.text, re.DOTALL)
+    
+    for item_text in items[:MAX_ARTICULOS_POR_FUENTE]:
+        titulo_match = re.search(r'<title>(.*?)</title>', item_text, re.DOTALL)
+        link_match = re.search(r'<link>(.*?)</link>', item_text, re.DOTALL)
+        desc_match = re.search(r'<description>(.*?)</description>', item_text, re.DOTALL)
+        date_match = re.search(r'<pubDate>(.*?)</pubDate>', item_text)
+        
+        if titulo_match:
+            titulo = re.sub(r'<[^>]+>', '', titulo_match.group(1)).strip()
+            url = link_match.group(1).strip() if link_match else ""
+            fecha = date_match.group(1) if date_match else ""
+            contenido = re.sub(r'<[^>]+>', '', desc_match.group(1)).strip() if desc_match else ""
+            
+            if titulo:
+                articulos.append({
+                    "titulo": titulo,
+                    "url": url,
+                    "fecha": fecha,
+                    "contenido": contenido,
+                    "fuente": fuente["nombre"],
+                })
+    
+    print(f"  ✅ {fuente['nombre']}: {len(articulos)} artículos (regex)")
+    return articulos
+
+
+def _scrapear_links_directos(fuente, headers):
+    """Scrapea links de noticias directamente del HTML de una sección."""
+    articulos = []
+    
+    for url_seccion in fuente.get("base_links", []):
+        try:
+            resp = requests.get(url_seccion, headers=headers, timeout=SCRAPE_TIMEOUT)
+            if resp.status_code != 200:
+                continue
+            
+            soup = BeautifulSoup(resp.text, "html.parser")
+            
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if "/noticias/" in href and href != "/noticias/":
+                    title = a.get_text(strip=True)
+                    if title and len(title) > 20:
+                        if not href.startswith("http"):
+                            href = urljoin(fuente["base_url"], href)
+                        articulos.append({
+                            "titulo": title[:200],
+                            "url": href,
+                            "fecha": "",
+                            "contenido": "",
+                            "fuente": fuente["nombre"],
+                        })
+        except Exception as e:
+            continue
+    
+    # Limitar y dedup
+    vistos = set()
+    articulos_unicos = []
+    for a in articulos:
+        if a["url"] not in vistos and len(articulos_unicos) < MAX_ARTICULOS_POR_FUENTE:
+            vistos.add(a["url"])
+            articulos_unicos.append(a)
+    
+    print(f"  ✅ {fuente['nombre']}: {len(articulos_unicos)} artículos (links)")
+    return articulos_unicos
 
 
 def extraer_contenido_articulo(url, fuente):
