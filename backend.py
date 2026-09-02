@@ -198,23 +198,41 @@ def grafo(limit: int = 250):
 def som(limit: int = 500):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT id, nombre_completo, tipo, region FROM politicos LIMIT %s", (limit,))
+    cur.execute("""
+        SELECT p.id, p.nombre_completo, p.tipo, p.region,
+               COALESCE(cc.casos_count, 0) AS casos_count,
+               COALESCE(fam.fam_count, 0) AS fam_count
+        FROM politicos p
+        LEFT JOIN (
+            SELECT responsable, COUNT(*) AS casos_count
+            FROM casos_corrupcion
+            GROUP BY responsable
+        ) cc ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
+        LEFT JOIN (
+            SELECT politico_id, COUNT(*) AS fam_count
+            FROM familiares
+            GROUP BY politico_id
+        ) fam ON fam.politico_id = p.id
+        LIMIT %s
+    """, (limit,))
     rows = cur.fetchall()
-    puntos = []
+    max_casos = max((r['casos_count'] for r in rows), default=1) or 1
+    max_fam = max((r['fam_count'] for r in rows), default=1) or 1
+    items = []
     for r in rows:
-        cur.execute("SELECT COUNT(*) as total FROM casos_corrupcion WHERE responsable ILIKE %s", (f"%{r['nombre_completo']}%",))
-        casos = cur.fetchone()['total'] or 0
-        puntos.append({
-            "id": r['id'],
+        items.append({
+            "politico_id": r['id'],
             "nombre": r['nombre_completo'],
             "tipo": r['tipo'],
             "region": r['region'],
-            "score_riesgo": min(1.0, casos * 0.3),
-            "total_casos": casos
+            "score_riesgo": min(1.0, r['casos_count'] * 0.3),
+            "total_casos": r['casos_count'],
+            # normalized: features en [0,1] para el entrenamiento SOM del frontend
+            "normalized": [r['casos_count'] / max_casos, r['fam_count'] / max_fam],
         })
     cur.close()
     conn.close()
-    return {"puntos": puntos}
+    return {"items": items}
 
 @app.get("/api/politicos/{politico_id}")
 def detalle_politico(politico_id: int):

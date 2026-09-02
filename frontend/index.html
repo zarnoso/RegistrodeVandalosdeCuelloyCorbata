@@ -589,7 +589,8 @@
         $("#sourceStatus").textContent = health?.mode === "demo"
           ? "API conectada · datos ficticios"
           : "API conectada · datos públicos";
-      } catch {
+      } catch (err) {
+        console.error("Fallo al cargar API:", err);
         people = fallback;
         $("#sourceStatus").textContent = "Modo demostración · datos ficticios";
       }
@@ -685,7 +686,7 @@
       title.textContent = selectedRegion || "Chile";
       svg.append(title);
       const sub = svgEl("text",{x:"42",y:"111",fill:"#66716d","font-size":"10","font-family":"DM Mono"});
-      sub.textContent = selectedRegion ? "SELECCIN ACTIVA · CLIC PARA LIMPIAR" : "16 REGIONES · EJE NORTE A SUR";
+      sub.textContent = selectedRegion ? "SELECCIÓN ACTIVA · CLIC PARA LIMPIAR" : "16 REGIONES · EJE NORTE A SUR";
       svg.append(sub);
     }
 
@@ -717,7 +718,7 @@
         const c=svgEl("circle",{cx:x,cy:y,r:13+Math.min(8,p.num_eventos*2),fill:riskColor(p),stroke:"#fff","stroke-width":"3"});
         const t=svgEl("text",{x,y:y+30,"text-anchor":"middle",fill:"#17211f","font-size":"9","font-family":"Manrope"});
         t.textContent=p.nombre_completo.split(" ").slice(0,2).join(" ");
-        g.append(c,t); g.addEventListener("click",()=>openProfile(p.id)); bindTooltip(g,`${p.nombre_completo}  ${p.num_eventos} antecedentes  ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))}`); svg.append(g);
+        g.append(c,t); g.addEventListener("click",()=>openProfile(p.id)); bindTooltip(g,`${p.nombre_completo} · ${p.num_eventos} antecedentes · ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))}`); svg.append(g);
       });
     }
 
@@ -767,7 +768,7 @@
           label.textContent=node.etiqueta.split(" ").slice(0,2).join(" "); g.append(label);
           g.addEventListener("click",()=>openProfile(node.id.replace("politico:","")));
         }
-        bindTooltip(g,`${node.etiqueta}  ${node.tipo}  ${formatProcessState(node.metadata?.estado || (node.tipo === "evento" ? "abierto" : "sin_estado"))}`);
+        bindTooltip(g,`${node.etiqueta} · ${node.tipo} · ${formatProcessState(node.metadata?.estado || (node.tipo === "evento" ? "abierto" : "sin_estado"))}`);
         svg.append(g);
       });
     }
@@ -789,7 +790,7 @@
         const x=ox+c*cellW+20+(i%3)*18, y=oy+r*cellH+22+(i%2)*24;
         const node=svgEl("circle",{cx:x,cy:y,r:10,fill:riskColor(p),stroke:"white","stroke-width":"3",tabindex:"0",role:"button"});
         node.style.cursor="pointer"; node.addEventListener("click",()=>openProfile(p.id));
-        bindTooltip(node,`${p.nombre_completo}  ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))}  vecino por similitud estadstica`);
+        bindTooltip(node,`${p.nombre_completo} · ${formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado"))} · vecino por similitud estadística`);
         svg.append(node);
       });
       const xLabel=svgEl("text",{x:"400",y:"478","text-anchor":"middle",fill:"#66716d","font-size":"10","font-family":"DM Mono"});
@@ -870,7 +871,7 @@
         try {
           const res=await fetch(`${API_BASE}/${encodeURIComponent(id)}`);
           if(res.ok) p={...p,...await res.json()};
-        } catch {}
+        } catch (err) { console.error("Fallo al cargar detalle del político:", err); }
       }
       if(!p)return;
       const events=p.eventos||[];

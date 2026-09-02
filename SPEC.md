@@ -313,3 +313,19 @@ registro-devandalos/
 **Backend (`backend.py`):**
 - `/api/politicos/{politico_id}` estaba registrado antes que `/api/politicos/grafo` y `/api/politicos/analitica/som`. FastAPI resuelve rutas por orden de declaración, así que toda petición a `/grafo` o `/analitica/som` intentaba convertir el string a `int` para `politico_id` y fallaba con 422 antes de llegar al endpoint real — el grafo y el mapa SOM nunca respondían en producción. Reordenado: rutas específicas primero, ruta con parámetro dinámico al final.
 
+### 2026-09-02 — Auditoría general: contrato SOM roto, errores silenciados, mojibake residual
+
+**Backend (`backend.py`):**
+- `/api/politicos/analitica/som` devolvía `{puntos:[{id, nombre, tipo, region, score_riesgo, total_casos}]}`, pero el frontend (`renderSom`/`trainSom`) esperaba `{items:[{politico_id, normalized}]}`. El mapa SOM nunca llegó a usar datos reales del backend — siempre caía al modo simulado por el mismatch de claves, sin ningún error visible. Reescrito con el contrato correcto (`items`, `politico_id`, `normalized` en [0,1] con casos y familiares como features) y de paso eliminado el N+1 que tenía este endpoint (antes 1 query extra por cada político).
+- Confirmado con el usuario: tabla `patrimonio` existe con columna `politico_id` (FK), solo está vacía (0 filas) — el `LEFT JOIN`/`SELECT *` sobre ella no es un riesgo de columna inexistente, solo devuelve vacío hasta que se pueble.
+
+**Frontend (`frontend/index.html`):**
+- `catch {}` silencioso en `openProfile` al fallar la carga del detalle — no dejaba ningún rastro para depurar. Agregado `console.error`.
+- El `catch` genérico de `loadData` había perdido el `console.error` que se agregó en una iteración anterior (se pisó en un rebase). Repuesto.
+- Mojibake residual: `"SELECCIN"` → `"SELECCIÓN"`, `"estadstica"` → `"estadística"`.
+- 3 tooltips con separador ` · ` perdido (quedaron dobles espacios sin separador visual) en `renderNetwork`, `renderApiNetwork` y `renderSom`. Corregidos.
+
+**Pendiente para próxima iteración (detectado, no bug):**
+- El buscador principal del UI es solo client-side sobre los políticos ya cargados; no usa el endpoint `/api/buscar/alias/` ya implementado en el backend — falta conectar un input/toggle en el frontend para activarlo.
+- La búsqueda por nombre en `listar_politicos`/`grafo`/`som` sigue usando `ILIKE` de texto contra `casos_corrupcion.responsable` en vez de una FK real — funciona pero es frágil ante homónimos o variaciones de escritura del nombre.
+
