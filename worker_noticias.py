@@ -67,16 +67,21 @@ FUENTES = {
     },
     "el_mostrador": {
         "nombre": "El Mostrador",
-        "rss": "https://www.elmostrador.cl/feed/",
+        "rss": "https://www.elmostrador.cl/",
         "base_url": "https://www.elmostrador.cl",
         "selector_titulo": "h1.titulo, h1.entry-title, h1",
         "selector_contenido": ".cuerpo-noticia, .contenido, .entry-content, article",
         "selector_fecha": "span.fecha, time, .date",
         "selector_autor": ".autor, .author",
+        "scrapear_directo": True,
+        "url_noticias": [
+            "https://www.elmostrador.cl/noticias/",
+            "https://www.elmostrador.cl/reportajes/",
+        ],
     },
     "biobiochile": {
         "nombre": "BioBioChile",
-        "rss": "https://www.biobiochile.cl/feed/",
+        "rss": "https://feeds.feedburner.com/radiobiobio/NNeJ",
         "base_url": "https://www.biobiochile.cl",
         "selector_titulo": "h1.titulo, h1.entry-title, h1",
         "selector_contenido": ".contenido-noticia, .cuerpo, article, .entry-content",
@@ -94,7 +99,7 @@ FUENTES = {
     },
     "interferencia": {
         "nombre": "Interferencia",
-        "rss": "https://interferencia.cl/feed/",
+        "rss": "https://interferencia.cl/rss.xml",
         "base_url": "https://interferencia.cl",
         "selector_titulo": "h1, .entry-title, .titulo",
         "selector_contenido": ".contenido, .cuerpo, article, .entry-content, .contenido-noticia",
