@@ -329,3 +329,14 @@ registro-devandalos/
 - El buscador principal del UI es solo client-side sobre los políticos ya cargados; no usa el endpoint `/api/buscar/alias/` ya implementado en el backend — falta conectar un input/toggle en el frontend para activarlo.
 - La búsqueda por nombre en `listar_politicos`/`grafo`/`som` sigue usando `ILIKE` de texto contra `casos_corrupcion.responsable` en vez de una FK real — funciona pero es frágil ante homónimos o variaciones de escritura del nombre.
 
+### 2026-09-02 — Buscador de alias conectado al UI
+
+**Frontend (`frontend/index.html`):**
+- `applyFilters` sigue siendo síncrono (filtro instantáneo por nombre/partido/región/cargo). Cuando ese filtro no encuentra nada y hay texto de búsqueda, se dispara `searchAliases()` como fallback asíncrono contra `/api/buscar/alias/` — así "el Tati" (alias, no en `nombre_completo`) sí puede encontrar al político real.
+- Resultados de alias se muestran en un dropdown (`#aliasHint`) bajo el buscador, con el alias, a quién pertenece, tipo de vínculo y si está verificado. Clic abre el perfil directamente.
+- Se descarta con un token de secuencia (`aliasSearchToken`) cualquier respuesta que llegue tarde si el usuario ya siguió escribiendo — evita mostrar resultados obsoletos.
+- Placeholder del buscador actualizado para reflejar la nueva capacidad ("...o alias").
+
+**Pendiente:**
+- Los 15 partidos políticos faltantes y el diseño de la estructura para "personas que trabajan para el gobierno" (no electas) quedan a la espera de que el usuario defina/pueble los datos en Neon — sin acceso de red a la BD desde este entorno no se puede avanzar ese punto.
+

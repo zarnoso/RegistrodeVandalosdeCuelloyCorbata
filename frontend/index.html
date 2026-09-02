@@ -154,6 +154,7 @@
       border: 1px solid var(--line);
       border-radius: 14px;
       background: var(--surface);
+      position: relative;
     }
     .search svg { flex: 0 0 auto; color: var(--muted); }
     .search input {
@@ -164,6 +165,41 @@
       background: transparent;
       color: var(--ink);
     }
+    .alias-hint {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      width: min(520px, 100%);
+      max-height: 220px;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      z-index: 20;
+      padding: 6px;
+    }
+    .alias-hint-title {
+      padding: 6px 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+    }
+    .alias-hint-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      border: 0;
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--ink);
+    }
+    .alias-hint-item:hover { background: var(--paper); }
+    .alias-hint-item .person-meta { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
     .top-status {
       margin-left: auto;
       display: flex;
@@ -495,7 +531,8 @@
       <header class="topbar">
         <label class="search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.6"/></svg>
-          <input id="searchInput" type="search" placeholder="Buscar por nombre, partido o región" autocomplete="off">
+          <input id="searchInput" type="search" placeholder="Buscar por nombre, partido, región o alias" autocomplete="off">
+          <div id="aliasHint" class="alias-hint" hidden></div>
         </label>
         <div class="top-status"><span class="live-dot"></span><span id="sourceStatus">Conectando datos</span></div>
       </header>
@@ -565,7 +602,7 @@
     ];
 
     let people = [], filtered = [], selectedRegion = null, currentView = "territory", activeFilter = "all", apiAvailable = false;    let casesData = [], filteredCases = [], caseFilters = { estado_procesal: "all", tipo_alerta: "all" };
-    let graphPayload = null, somPayload = null;
+    let graphPayload = null, somPayload = null, aliasMatches = [], aliasSearchToken = 0;
     const $ = selector => document.querySelector(selector);
     const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
     const initials = name => name.split(/\s+/).filter(Boolean).map(x => x[0]).join("").slice(0,2).toUpperCase();
@@ -634,6 +671,39 @@
       });
       renderList();
       renderViz();
+      searchAliases(q);
+    }
+
+    // Punto 3 (auditoría): buscador por alias conectado al UI.
+    // Si el filtro local (nombre/partido/región/cargo) no encuentra nada
+    // y hay texto de búsqueda, consulta /api/buscar/alias/ como fallback
+    // ("el Tati" no aparece en nombre_completo pero sí en politicos_aliases).
+    async function searchAliases(q) {
+      const token = ++aliasSearchToken;
+      if (!apiAvailable || !q || filtered.length) { aliasMatches = []; renderAliasHint(); return; }
+      try {
+        const res = await fetch(`${BACKEND_ORIGIN}/api/buscar/alias/?nombre=${encodeURIComponent(q)}`);
+        if (token !== aliasSearchToken) return; // respuesta obsoleta, el usuario ya siguió escribiendo
+        aliasMatches = res.ok ? await res.json() : [];
+      } catch (err) {
+        console.error("Fallo al buscar por alias:", err);
+        aliasMatches = [];
+      }
+      if (token === aliasSearchToken) renderAliasHint();
+    }
+
+    function renderAliasHint() {
+      const box = $("#aliasHint");
+      if (!box) return;
+      if (!aliasMatches.length) { box.innerHTML = ""; box.hidden = true; return; }
+      box.hidden = false;
+      box.innerHTML = `<div class="alias-hint-title">Encontrado por alias/apodo:</div>` + aliasMatches.map(m => `
+        <button class="alias-hint-item" data-alias-person="${escapeHtml(m.politico_id)}">
+          <strong>${escapeHtml(m.alias_nombre)}</strong> → ${escapeHtml(m.nombre_completo)}
+          <span class="person-meta">${escapeHtml(m.alias_tipo)}${m.verificado ? " · verificado" : ""}</span>
+        </button>`).join("");
+      box.querySelectorAll("[data-alias-person]").forEach(btn =>
+        btn.addEventListener("click", () => openProfile(btn.dataset.aliasPerson)));
     }
 
     function renderList() {
@@ -929,6 +999,9 @@
       activeFilter=btn.dataset.filter; document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x===btn)); applyFilters();
     }));
     $("#searchInput").addEventListener("input",applyFilters);
+    document.addEventListener("click",e=>{
+      if(!e.target.closest(".search")) { const box=$("#aliasHint"); if(box) box.hidden = true; }
+    });
     $("#drawerClose").addEventListener("click",()=>$("#drawerBackdrop").classList.remove("open"));
     $("#drawerBackdrop").addEventListener("click",e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove("open");});
     document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#drawerBackdrop").classList.remove("open");});
