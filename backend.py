@@ -247,11 +247,16 @@ def detalle_politico(politico_id: int):
         raise HTTPException(status_code=404, detail="Político no encontrado")
 
     cur.execute("""
-        SELECT caso_nombre, fecha_inicio, estado_actual, resumen, fuente
+        SELECT nombre as caso_nombre, 
+               COALESCE(año_inicio::text, año::text, '—') as fecha_inicio, 
+               COALESCE(estado, 'sin_informacion') as estado_actual, 
+               COALESCE(delitos, conclusión, '') as resumen, 
+               COALESCE(fuentes::text, '') as fuente, 
+               COALESCE(fuente_url, '') as fuente_url
         FROM casos_corrupcion
-        WHERE responsable ILIKE %s
-        ORDER BY fecha_inicio DESC
-    """, (f"%{p['nombre_completo']}%",))
+        WHERE responsable ILIKE %s OR politico_id = %s
+        ORDER BY año_inicio DESC NULLS LAST
+    """, (f"%{p['nombre_completo']}%", politico_id))
     eventos = [dict(row) for row in cur.fetchall()]
 
     cur.execute("""
@@ -264,10 +269,15 @@ def detalle_politico(politico_id: int):
     # Punto 2/6: casos de corrupción de cada familiar — red cercana visible
     for f in familiares:
         cur.execute("""
-            SELECT caso_nombre, fecha_inicio, estado_actual, resumen, fuente
+            SELECT nombre as caso_nombre, 
+                   COALESCE(año_inicio::text, año::text, '—') as fecha_inicio, 
+                   COALESCE(estado, 'sin_informacion') as estado_actual, 
+                   COALESCE(delitos, conclusión, '') as resumen, 
+                   COALESCE(fuentes::text, '') as fuente, 
+                   COALESCE(fuente_url, '') as fuente_url
             FROM casos_corrupcion
             WHERE responsable ILIKE %s
-            ORDER BY fecha_inicio DESC
+            ORDER BY año_inicio DESC NULLS LAST
         """, (f"%{f['nombre_completo']}%",))
         f['casos'] = [dict(row) for row in cur.fetchall()]
 
@@ -288,6 +298,17 @@ def detalle_politico(politico_id: int):
     except Exception:
         patrimonios = []
 
+    # Noticias donde aparece mencionado
+    cur.execute("""
+        SELECT n.id, n.titulo, n.fuente, n.fecha_publicacion, n.url, nm.contexto
+        FROM noticias n
+        JOIN noticias_menciones nm ON n.id = nm.noticia_id
+        WHERE nm.politico_id = %s
+        ORDER BY n.fecha_publicacion DESC
+        LIMIT 20
+    """, (politico_id,))
+    noticias = [dict(row) for row in cur.fetchall()]
+
     cur.close()
     conn.close()
 
@@ -303,11 +324,13 @@ def detalle_politico(politico_id: int):
         "num_eventos": casos_count,
         "num_familiares": len(familiares),
         "num_empresas": len(patrimonios),
+        "num_noticias": len(noticias),
         "casos_familiares": casos_familiares,
         "eventos": eventos,
         "familiares": familiares,
         "aliases": aliases,
         "patrimonios": patrimonios,
+        "noticias": noticias,
     }
 
 @app.get("/api/buscar/alias/")
