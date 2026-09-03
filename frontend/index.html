@@ -233,6 +233,16 @@
       line-height: 1.55;
     }
     .hero-note strong { display: block; margin-bottom: 7px; color: var(--ink); }
+    .glossary { background: var(--ink); padding: 40px; border-radius: 12px; margin-bottom: 24px; }
+    .glossary h2 { font-family: "Newsreader", serif; font-size: 24px; color: var(--paper); margin-bottom: 24px; }
+    .glossary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+    .glossary-item { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; border-left: 3px solid var(--teal); }
+    .glossary-item h3 { font-size: 14px; margin-bottom: 8px; color: var(--paper); }
+    .glossary-item p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .glossary-item:nth-child(1) { border-left-color: #dc3545; }
+    .glossary-item:nth-child(2) { border-left-color: #fd7e14; }
+    .glossary-item:nth-child(3) { border-left-color: #0dcaf0; }
+    .glossary-item:nth-child(4) { border-left-color: #6c757d; }
 
     .metrics {
       display: grid;
@@ -565,6 +575,28 @@
           <p class="hero-copy" id="viewCopy">Explora autoridades, antecedentes públicos y conexiones declaradas sin perder de vista el territorio ni el estado de cada fuente.</p>
         </div>
         <aside class="hero-note" id="viewNote"><strong>Cómo leer este mapa</strong>Selecciona una región de la columna chilena. El tamaño de cada marca resume la cantidad de autoridades registradas, no su nivel de riesgo.</aside>
+      </section>
+
+      <section class="glossary" aria-label="Guía rápida">
+        <h2>📖 Guía rápida</h2>
+        <div class="glossary-grid">
+          <div class="glossary-item">
+            <h3>🔴 Riesgo propio</h3>
+            <p>Casos de corrupción donde el político es responsable directo.</p>
+          </div>
+          <div class="glossary-item">
+            <h3>🟠 Riesgo heredado</h3>
+            <p>Familiares o cercanos con casos que pueden afectar al político.</p>
+          </div>
+          <div class="glossary-item">
+            <h3>🔵 Vínculo mediático</h3>
+            <p>Políticos mencionados juntos en noticias (aún no confirmado).</p>
+          </div>
+          <div class="glossary-item">
+            <h3>⚪ Sin antecedentes</h3>
+            <p>Sin casos registrados en nuestra base de datos.</p>
+          </div>
+        </div>
       </section>
 
       <section class="metrics" aria-label="Resumen">
