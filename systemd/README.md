@@ -34,3 +34,20 @@ systemctl list-timers
 
 ## Frecuencia:
 - Diario a las 06:00 (hora de Chile / UTC-4)
+
+## Alertas Telegram (opcional):
+
+Editar el servicio systemd:
+
+```bash
+sudo systemctl edit worker-noticias.service
+```
+
+Agregar:
+```
+[Service]
+Environment=TELEGRAM_BOT_TOKEN=tu_token
+Environment=TELEGRAM_CHAT_ID=tu_chat_id
+```
+
+Obtener chat ID: habla con el bot y visita `https://api.telegram.org/bot<TOKEN>/getUpdates`

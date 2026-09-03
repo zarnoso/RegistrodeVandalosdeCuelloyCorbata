@@ -22,6 +22,35 @@ BATCH_SIZE = int(os.environ.get("NOTICIAS_BATCH_SIZE", "20"))
 SCRAPE_TIMEOUT = int(os.environ.get("NOTICIAS_TIMEOUT", "15"))
 MAX_ARTICULOS = int(os.environ.get("NOTICIOS_MAX_ARTICULOS", "50"))
 
+# ══════════════════════════════════════════════════════
+# TELEGRAM
+# ══════════════════════════════════════════════════════
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+def enviar_alerta_telegram(mensaje):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return False
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={"chat_id": TELEGRAM_CHAT_ID, "text": mensaje[:4000], "parse_mode": "HTML"},
+            timeout=10,
+        )
+        return True
+    except:
+        return False
+
+def generar_alerta(politicos_detectados, fuente):
+    if not politicos_detectados:
+        return None
+    mensaje = f"🗞️ <b>Nuevas menciones en {fuente}</b>\n\n"
+    for nombre, contexto in list(politicos_detectados.items())[:5]:
+        mensaje += f"• <b>{nombre}</b>\n  <i>{contexto[:100]}...</i>\n"
+    if len(politicos_detectados) > 5:
+        mensaje += f"\n...y {len(politicos_detectados) - 5} más"
+    return mensaje
+
 FUENTES = {
     "biobiochile": {
         "nombre": "BioBioChile",
@@ -284,7 +313,19 @@ def run():
             except: pass
     
     _flush()
+
+    # Alerta Telegram: detectar políticos con menciones
+    politicos_con_menciones = {}
+    for r in resultados:
+        for nombre in r["politicos"]:
+            if nombre not in politicos_con_menciones:
+                politicos_con_menciones[nombre] = r["titulo"]
     
+    if politicos_con_menciones and TELEGRAM_BOT_TOKEN:
+        alerta = generar_alerta(politicos_con_menciones, "prensa")
+        if alerta:
+            enviar_alerta_telegram(alerta)
+
     print("\n" + "=" * 60)
     print(f"📊 Procesados: {len(todos)} | Con menciones: {len(resultados)}")
     politicos = set()
