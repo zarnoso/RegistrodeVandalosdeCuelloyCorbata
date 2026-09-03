@@ -379,6 +379,16 @@
     }
     .person:nth-child(3n+2) .avatar { background: var(--teal); }
     .person:nth-child(3n) .avatar { background: #6b5b8e; }
+    .avatar-fallback {
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: var(--cobalt);
+      font: 600 11px "DM Mono", monospace;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
     .person-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
     .person-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 10px; margin-top: 3px; }
     .risk {

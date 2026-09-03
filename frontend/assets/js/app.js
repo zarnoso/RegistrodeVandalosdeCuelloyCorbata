@@ -131,9 +131,12 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       $("#resultsCount").textContent = `${filtered.length} resultado${filtered.length===1?"":"s"}`;
       $("#personList").innerHTML = filtered.length ? filtered.map(p => {
         const delitosHtml = p.delitos_resumen ? `<span class="person-delitos">${escapeHtml(p.delitos_resumen)}</span>` : '';
+        const avatarContent = p.foto_url
+          ? `<img src="${escapeHtml(p.foto_url)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.outerHTML='${escapeHtml(initials(p.nombre_completo))}'">`
+          : escapeHtml(initials(p.nombre_completo));
         return `
         <button class="person" data-person="${escapeHtml(p.id)}">
-          <span class="avatar">${escapeHtml(initials(p.nombre_completo))}</span>
+          <span class="avatar">${avatarContent}</span>
           <span><span class="person-name">${escapeHtml(p.nombre_completo)}</span><span class="person-meta">${escapeHtml(p.cargo)} · ${escapeHtml(p.region)}</span>${delitosHtml}<span class="person-meta">${escapeHtml(p.num_eventos || 0)} caso(s) · ${escapeHtml(formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado")))}</span></span>
           <span class="risk ${riskGroup(p)==="formal"?"red":riskGroup(p)==="review"?"amber":""}" title="${escapeHtml(riskGroup(p))}"></span>
         </button>`;
@@ -611,6 +614,12 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       return "open";
     }
 
+    const avatarHtml = (p, size) => {
+      const s = size || 64;
+      if (p.foto_url) return `<img src="${escapeHtml(p.foto_url)}" alt="${escapeHtml(p.nombre_completo)}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;border:2px solid var(--teal)" onerror="this.outerHTML='<span class=\\'avatar-fallback\\' style=\\'width:${s}px;height:${s}px\\'>${initials(p.nombre_completo)}</span>'">`;
+      return `<span class="avatar-fallback" style="width:${s}px;height:${s}px">${initials(p.nombre_completo)}</span>`;
+    };
+
     async function openProfile(id) {
       // #13: Actualizar URL hash para perfil individual
       if (id) {
@@ -630,9 +639,14 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       const stateClass = processState === "condenado" ? "convicted" : processState === "cerrado_sin_condena" ? "closed" : "open";
       $("#drawerContent").innerHTML=`
         <header class="profile-head">
-          <span class="eyebrow">${escapeHtml(p.institucion||"Registro público")}</span>
-          <h2 id="profileName">${escapeHtml(p.nombre_completo)}</h2>
-          <p>${escapeHtml(p.cargo)} · ${escapeHtml(p.partido)} · ${escapeHtml(p.region)}</p>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+            ${avatarHtml(p, 64)}
+            <div>
+              <span class="eyebrow">${escapeHtml(p.institucion||"Registro público")}</span>
+              <h2 id="profileName">${escapeHtml(p.nombre_completo)}</h2>
+              <p>${escapeHtml(p.cargo)} · ${escapeHtml(p.partido)} · ${escapeHtml(p.region)}</p>
+            </div>
+          </div>
         </header>
         <div class="disclaimer">Los antecedentes describen estados documentales y procesales. No constituyen una declaración de culpabilidad. Verifica siempre la fuente y su fecha.</div>
         <section class="detail-section"><h3>Resumen registrado</h3><div class="detail-grid">

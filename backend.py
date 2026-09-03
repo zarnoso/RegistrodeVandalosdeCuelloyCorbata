@@ -96,7 +96,7 @@ def listar_politicos(limit: int = 500, skip: int = 0):
         cur = conn.cursor()
         cur.execute("""
             SELECT
-                p.id, p.nombre_completo, p.tipo, p.region, p.partido,
+                p.id, p.nombre_completo, p.tipo, p.region, p.partido, p.foto_url,
                 COALESCE(cc.casos_count, 0) AS num_eventos,
                 COALESCE(fam.fam_count, 0) AS num_familiares,
                 COALESCE(pat.pat_count, 0) AS num_empresas,
@@ -141,12 +141,39 @@ def listar_politicos(limit: int = 500, skip: int = 0):
             casos_familiares = r['casos_familiares']
             estado_riesgo = calcular_riesgo_heredado(num_eventos, casos_familiares)
             tipo = (r['tipo'] or "").lower()
-            cargo = "Diputado" if "diputado" in tipo else "Senador" if "senador" in tipo else tipo.capitalize() if tipo else "Otro"
+            TIPO_CARGO = {
+                "diputado": ("Congreso", "Diputado"),
+                "senador": ("Congreso", "Senador"),
+                "ex_diputado": ("Ex Congreso", "Ex Diputado"),
+                "ex_senador": ("Ex Congreso", "Ex Senador"),
+                "ex_diputada": ("Ex Congreso", "Ex Diputada"),
+                "ministro": ("Gobierno", "Ministro"),
+                "ex_ministro": ("Ex Gobierno", "Ex Ministro"),
+                "alcalde": ("Municipalidad", "Alcalde"),
+                "ex_intendenta": ("Ex Gobernación", "Ex Intendenta"),
+                "empresario": ("Sector Privado", "Empresario"),
+                "abogado": ("Sector Privado", "Abogado"),
+                "abogada": ("Sector Privado", "Abogada"),
+                "asesor_politico": ("Operador Político", "Asesor"),
+                "asesora_politica": ("Operador Político", "Asesora"),
+                "asesora_juridica": ("Operador Político", "Asesora Jurídica"),
+                "asesor_financiero": ("Operador Político", "Asesor Financiero"),
+                "funcionario_publico": ("Estado", "Funcionario Público"),
+                "funcionaria_udia": ("Estado", "Funcionaria"),
+                "dirigente_politico": ("Partido Político", "Dirigente"),
+                "dirigenta_politica": ("Partido Político", "Dirigenta"),
+                "contadora": ("Sector Privado", "Contadora"),
+                "periodista": ("Medios", "Periodista"),
+                "ex_magistrada": ("Poder Judicial", "Ex Magistrada"),
+                "persona_vinculada": ("Vínculo Político", "Vínculo"),
+            }
+            institucion, cargo = TIPO_CARGO.get(tipo, ("Otro", tipo.capitalize() if tipo else "Otro"))
             resultado.append({
                 "id": r['id'], "nombre_completo": r['nombre_completo'] or "Sin nombre",
                 "tipo": r['tipo'], "region": r['region'] or "Sin región",
-                "institucion": "Congreso", "cargo": cargo,
-                "partido": r['partido'] or "Sin partido", "estado_riesgo": estado_riesgo,
+                "institucion": institucion, "cargo": cargo,
+                "partido": r['partido'] or "Sin partido", "foto_url": r['foto_url'],
+                "estado_riesgo": estado_riesgo,
                 "num_eventos": num_eventos, "num_empresas": r['num_empresas'],
                 "num_familiares": r['num_familiares'], "casos_familiares": casos_familiares,
                 "delitos_resumen": r['delitos_resumen'] or None,
