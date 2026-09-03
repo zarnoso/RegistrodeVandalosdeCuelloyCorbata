@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,650&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
   <style>
     :root {
       --paper: #f3f5f2;
@@ -301,7 +302,13 @@
         #f7f9f6;
       background-size: 28px 28px;
     }
-    .viz svg { width: 100%; height: 100%; display: block; }
+    .viz svg { width: 100%; height: 100%; display: block; cursor: grab; }
+    .viz svg:active { cursor: grabbing; }
+    .d3-graph-container { width: 100%; height: 100%; }
+    .d3-node { cursor: pointer; }
+    .d3-node:hover circle { stroke-width: 4px; }
+    .d3-label { font: 9px Manrope, sans-serif; fill: #17211f; pointer-events: none; }
+    .d3-link { stroke-opacity: 0.4; }
     .funcionarios-list {
       display: grid;
       gap: 8px;
@@ -918,6 +925,175 @@
     }
 
     function renderApiNetwork(svg) {
+      if (typeof d3 === 'undefined') {
+        renderApiNetworkStatic(svg);
+        return;
+      }
+      
+      const container = svg.parentElement;
+      container.innerHTML = '<div class="d3-graph-container" id="d3graph"></div>';
+      const graphDiv = container.querySelector('#d3graph');
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      const svgD3 = d3.select(graphDiv)
+        .append('svg')
+        .attr('width', '100%')
+        .attr('height', '100%')
+        .attr('viewBox', `0 0 ${width} ${height}`);
+      
+      // Zoom/Pan
+      const g = svgD3.append('g');
+      
+      svgD3.call(d3.zoom()
+        .scaleExtent([0.2, 5])
+        .on('zoom', (event) => {
+          g.attr('transform', event.transform);
+        }));
+      
+      // Preparar datos
+      const selectedPeople = new Set(filtered.map(p => `politico:${p.id}`));
+      const visibleEdges = graphPayload.edges.filter(edge =>
+        selectedPeople.has(edge.origen) || selectedPeople.has(edge.destino)
+      );
+      const visibleIds = new Set([...selectedPeople]);
+      visibleEdges.forEach(edge => { visibleIds.add(edge.origen); visibleIds.add(edge.destino); });
+      
+      const typeConfig = {
+        politico: { color: '#087f73', radius: 18 },
+        evento: { color: '#d18a23', radius: 12 },
+        empresa: { color: '#315aa8', radius: 12 },
+        familiar: { color: '#6b5b8e', radius: 11 }
+      };
+      
+      let nodes = graphPayload.nodes
+        .filter(node => visibleIds.has(node.id))
+        .slice(0, 100)
+        .map(node => {
+          const cfg = typeConfig[node.tipo] || typeConfig.empresa;
+          const esPol = node.tipo === 'politico';
+          const polId = esPol ? node.id.replace('politico:', '') : null;
+          const polData = esPol ? filtered.find(p => String(p.id) === polId) : null;
+          return {
+            id: node.id,
+            tipo: node.tipo,
+            nombre: node.etiqueta,
+            color: esPol && polData ? riskColor(polData) : cfg.color,
+            radius: esPol ? cfg.radius + Math.min(8, (polData?.num_eventos || 0) * 1.5) : cfg.radius,
+            num_eventos: polData?.num_eventos || 0,
+            estado: polData?.estado_riesgo || node.metadata?.estado || 'sin_estado'
+          };
+        });
+      
+      const allowed = new Set(nodes.map(n => n.id));
+      const edges = visibleEdges
+        .filter(e => allowed.has(e.origen) && allowed.has(e.destino))
+        .map(e => ({ source: e.origen, target: e.destino }));
+      
+      // Force simulation
+      const simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(edges).id(d => d.id).distance(80).strength(0.5))
+        .force('charge', d3.forceManyBody().strength(-200))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => d.radius + 5));
+      
+      // Dibujar aristas
+      const link = g.append('g')
+        .selectAll('line')
+        .data(edges)
+        .enter()
+        .append('line')
+        .attr('class', 'd3-link')
+        .attr('stroke', '#c4cec8')
+        .attr('stroke-width', 1.4);
+      
+      // Dibujar nodos
+      const node = g.append('g')
+        .selectAll('g')
+        .data(nodes)
+        .enter()
+        .append('g')
+        .attr('class', 'd3-node')
+        .call(d3.drag()
+          .on('start', dragstarted)
+          .on('drag', dragged)
+          .on('end', dragended));
+      
+      node.append('circle')
+        .attr('r', d => d.radius)
+        .attr('fill', d => d.color)
+        .attr('stroke', 'white')
+        .attr('stroke-width', 2.5);
+      
+      node.append('title').text(d => `${d.nombre} · ${d.tipo} · ${d.num_eventos} eventos`);
+      
+      // Labels solo para políticos
+      node.filter(d => d.tipo === 'politico')
+        .append('text')
+        .attr('class', 'd3-label')
+        .attr('text-anchor', 'middle')
+        .attr('dy', d => d.radius + 12)
+        .text(d => d.nombre.split(' ').slice(0, 2).join(' '));
+      
+      // Click en políticos
+      node.filter(d => d.tipo === 'politico')
+        .on('click', (event, d) => {
+          const polId = d.id.replace('politico:', '');
+          container.innerHTML = '<svg id="vizSvg" viewBox="0 0 800 500"></svg>';
+          openProfile(parseInt(polId));
+        });
+      
+      // Hover tooltip
+      node.on('mouseover', function(event, d) {
+        d3.select(this).select('circle').attr('stroke-width', 4);
+      }).on('mouseout', function() {
+        d3.select(this).select('circle').attr('stroke-width', 2.5);
+      });
+      
+      // Tick
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+        
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+      });
+      
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
+      
+      // Leyenda
+      const legendData = [
+        { label: 'Político', color: '#087f73' },
+        { label: 'Caso', color: '#d18a23' },
+        { label: 'Empresa', color: '#315aa8' },
+        { label: 'Familiar', color: '#6b5b8e' }
+      ];
+      
+      const legend = svgD3.append('g').attr('transform', `translate(15, ${height - 80})`);
+      legendData.forEach((item, i) => {
+        const lg = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
+        lg.append('circle').attr('cx', 5).attr('cy', 5).attr('r', 5).attr('fill', item.color);
+        lg.append('text').attr('x', 14).attr('y', 8).attr('font-size', 9).attr('font-family', 'DM Mono').attr('fill', '#66716d').text(item.label);
+      });
+    }
+    
+    function renderApiNetworkStatic(svg) {
       const selectedPeople = new Set(filtered.map(p => `politico:${p.id}`));
       const visibleEdges = graphPayload.edges.filter(edge =>
         selectedPeople.has(edge.origen) || selectedPeople.has(edge.destino)
