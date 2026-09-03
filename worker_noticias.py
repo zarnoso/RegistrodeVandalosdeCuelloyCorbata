@@ -14,7 +14,9 @@ import requests, feedparser, psycopg2, psycopg2.extras
 from psycopg2 import pool as pg_pool
 from bs4 import BeautifulSoup
 
-DB_URL = os.environ.get("DATABASE_URL", "postgresql://neondb_owner:npg_tV5U4lxucCWR@ep-dark-sunset-ah922o3v-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require")
+DB_URL = os.environ.get("DATABASE_URL")
+if not DB_URL:
+    raise RuntimeError("Variable de entorno DATABASE_URL no configurada")
 MAX_WORKERS = int(os.environ.get("NOTICIAS_MAX_WORKERS", "4"))
 BATCH_SIZE = int(os.environ.get("NOTICIAS_BATCH_SIZE", "20"))
 SCRAPE_TIMEOUT = int(os.environ.get("NOTICIAS_TIMEOUT", "15"))

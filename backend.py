@@ -2,18 +2,38 @@
 Backend Registro de Vándalos v3
 """
 import os
+import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 import psycopg2
 import psycopg2.extras
-import json
+
+app = FastAPI(title="Registro de Vándalos API v3")
+
+# ══════════════════════════════════════════════════════
+# CACHÉ EN MEMORIA (TTL 5 minutos)
+# ══════════════════════════════════════════════════════
+_cache = {}
+CACHE_TTL = 300  # 5 minutos
+
+def cache_get(key):
+    entry = _cache.get(key)
+    if entry and time.time() - entry['ts'] < CACHE_TTL:
+        return entry['data']
+    return None
+
+def cache_set(key, data):
+    _cache[key] = {'data': data, 'ts': time.time()}
+
+def cache_clear():
+    _cache.clear()
 
 app = FastAPI(title="Registro de Vándalos API v3")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://registrodevandalos.likay.cl", "https://registrodevandalos.pages.dev", "http://192.168.100.23", "http://localhost:8006"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,92 +74,103 @@ def root():
 def health():
     try:
         conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        cur.close()
         conn.close()
         return {"status": "healthy"}
-    except:
-        return {"status": "unhealthy"}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)[:200]}
 
 @app.get("/api/politicos/")
 def listar_politicos(limit: int = 500, skip: int = 0):
+    cache_key = f"politicos_{limit}_{skip}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     conn = get_db()
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT
+                p.id, p.nombre_completo, p.tipo, p.region, p.partido,
+                COALESCE(cc.casos_count, 0) AS casos_count,
+                COALESCE(fam.fam_count, 0) AS fam_count,
+                COALESCE(pat.pat_count, 0) AS pat_count,
+                COALESCE(fam_casos.casos_familiares, 0) AS casos_familiares
+            FROM politicos p
+            LEFT JOIN (
+                SELECT responsable, COUNT(*) AS casos_count
+                FROM casos_corrupcion
+                GROUP BY responsable
+            ) cc ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
+            LEFT JOIN (
+                SELECT politico_id, COUNT(*) AS fam_count
+                FROM familiares
+                GROUP BY politico_id
+            ) fam ON fam.politico_id = p.id
+            LEFT JOIN (
+                SELECT politico_id, COUNT(*) AS pat_count
+                FROM patrimonio
+                GROUP BY politico_id
+            ) pat ON pat.politico_id = p.id
+            LEFT JOIN (
+                SELECT f.politico_id, COUNT(*) AS casos_familiares
+                FROM familiares f
+                JOIN casos_corrupcion cc2 ON cc2.responsable ILIKE '%%' || f.nombre_completo || '%%'
+                GROUP BY f.politico_id
+            ) fam_casos ON fam_casos.politico_id = p.id
+            ORDER BY p.nombre_completo
+            LIMIT %s OFFSET %s
+        """, (limit, skip))
 
-    # Un solo query con JOINs agregados — evita N+1 (antes: hasta 3 queries x 289 políticos)
-    # Suma casos_familiares (punto 6: riesgo heredado del entorno)
-    cur.execute("""
-        SELECT
-            p.id, p.nombre_completo, p.tipo, p.region, p.partido,
-            COALESCE(cc.casos_count, 0) AS casos_count,
-            COALESCE(fam.fam_count, 0) AS fam_count,
-            COALESCE(pat.pat_count, 0) AS pat_count,
-            COALESCE(fam_casos.casos_familiares, 0) AS casos_familiares
-        FROM politicos p
-        LEFT JOIN (
-            SELECT responsable, COUNT(*) AS casos_count
-            FROM casos_corrupcion
-            GROUP BY responsable
-        ) cc ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
-        LEFT JOIN (
-            SELECT politico_id, COUNT(*) AS fam_count
-            FROM familiares
-            GROUP BY politico_id
-        ) fam ON fam.politico_id = p.id
-        LEFT JOIN (
-            SELECT politico_id, COUNT(*) AS pat_count
-            FROM patrimonio
-            GROUP BY politico_id
-        ) pat ON pat.politico_id = p.id
-        LEFT JOIN (
-            SELECT f.politico_id, COUNT(*) AS casos_familiares
-            FROM familiares f
-            JOIN casos_corrupcion cc2 ON cc2.responsable ILIKE '%%' || f.nombre_completo || '%%'
-            GROUP BY f.politico_id
-        ) fam_casos ON fam_casos.politico_id = p.id
-        ORDER BY p.nombre_completo
-        LIMIT %s OFFSET %s
-    """, (limit, skip))
+        rows = cur.fetchall()
 
-    rows = cur.fetchall()
+        resultado = []
+        for r in rows:
+            casos_count = r['casos_count']
+            casos_familiares = r['casos_familiares']
+            estado_riesgo = calcular_riesgo_heredado(casos_count, casos_familiares)
 
-    resultado = []
-    for r in rows:
-        casos_count = r['casos_count']
-        casos_familiares = r['casos_familiares']
-        estado_riesgo = calcular_riesgo_heredado(casos_count, casos_familiares)
+            tipo = (r['tipo'] or "").lower()
+            if "diputado" in tipo:
+                cargo = "Diputado"
+            elif "senador" in tipo:
+                cargo = "Senador"
+            elif "investigado" in tipo:
+                cargo = "Investigado"
+            else:
+                cargo = tipo.capitalize() if tipo else "Otro"
 
-        tipo = (r['tipo'] or "").lower()
-        if "diputado" in tipo:
-            cargo = "Diputado"
-        elif "senador" in tipo:
-            cargo = "Senador"
-        elif "investigado" in tipo:
-            cargo = "Investigado"
-        else:
-            cargo = tipo.capitalize() if tipo else "Otro"
-
-        resultado.append({
-            "id": r['id'],
-            "nombre_completo": r['nombre_completo'] or "Sin nombre",
-            "tipo": r['tipo'],
-            "region": r['region'] or "Sin región",
-            "institucion": "Congreso",
-            "cargo": cargo,
-            "partido": r['partido'] or "Sin partido",
-            "estado_riesgo": estado_riesgo,
-            "num_eventos": casos_count,
-            "num_empresas": r['pat_count'],
-            "num_familiares": r['fam_count'],
-            "casos_familiares": casos_familiares,
-            "eventos": [],
-            "patrimonios": [],
-        })
-
-    cur.close()
-    conn.close()
+            resultado.append({
+                "id": r['id'],
+                "nombre_completo": r['nombre_completo'] or "Sin nombre",
+                "tipo": r['tipo'],
+                "region": r['region'] or "Sin región",
+                "institucion": "Congreso",
+                "cargo": cargo,
+                "partido": r['partido'] or "Sin partido",
+                "estado_riesgo": estado_riesgo,
+                "num_eventos": casos_count,
+                "num_empresas": r['pat_count'],
+                "num_familiares": r['fam_count'],
+                "casos_familiares": casos_familiares,
+                "eventos": [],
+                "patrimonios": [],
+            })
+    finally:
+        cur.close()
+        conn.close()
+    cache_set(cache_key, resultado)
     return resultado
 
 @app.get("/api/politicos/grafo")
 def grafo(limit: int = 250):
+    cached = cache_get("grafo")
+    if cached is not None:
+        return cached
+
     conn = get_db()
     cur = conn.cursor()
 
@@ -177,28 +208,34 @@ def grafo(limit: int = 250):
     for r in cur.fetchall():
         edges.append({"origen": f"politico:{r['politico_origen_id']}", "destino": f"politico:{r['politico_destino_id']}", "tipo": r['tipo_relacion']})
 
-    # Familiares como nodos propios + arista al político — dato que sí existe hoy
+    # Familiares como nodos propios + arista al político
     if politico_ids:
         cur.execute("""
-            SELECT id, politico_id, nombre_completo, parentesco
-            FROM familiares
-            WHERE politico_id = ANY(%s)
+            SELECT f.id, f.politico_id, f.nombre_completo, f.parentesco,
+                   COALESCE(cc.casos_count, 0) AS casos_count
+            FROM familiares f
+            LEFT JOIN (
+                SELECT responsable, COUNT(*) AS casos_count
+                FROM casos_corrupcion
+                GROUP BY responsable
+            ) cc ON f.nombre_completo ILIKE '%%' || cc.responsable || '%%'
+            WHERE f.politico_id = ANY(%s)
         """, (politico_ids,))
         for f in cur.fetchall():
             fam_node_id = f"familiar:{f['id']}"
-            cur.execute("SELECT COUNT(*) AS total FROM casos_corrupcion WHERE responsable ILIKE %s", (f"%{f['nombre_completo']}%",))
-            fam_casos = cur.fetchone()['total'] or 0
             nodes.append({
                 "id": fam_node_id,
                 "tipo": "familiar",
                 "etiqueta": f['nombre_completo'],
-                "metadata": {"parentesco": f['parentesco'], "estado": "condenado" if fam_casos > 2 else ("abierto" if fam_casos > 0 else "sin_estado")},
+                "metadata": {"parentesco": f['parentesco'], "estado": "condenado" if f['casos_count'] > 2 else ("abierto" if f['casos_count'] > 0 else "sin_estado")},
             })
             edges.append({"origen": f"politico:{f['politico_id']}", "destino": fam_node_id, "tipo": f['parentesco'] or "familiar"})
 
     cur.close()
     conn.close()
-    return {"nodes": nodes, "edges": edges}
+    result = {"nodes": nodes, "edges": edges}
+    cache_set("grafo", result)
+    return result
 
 @app.get("/api/politicos/analitica/som")
 def som(limit: int = 500):
@@ -379,6 +416,9 @@ def casos(limit: int = 100, skip: int = 0):
 
 @app.get("/api/stats")
 def stats():
+    cached = cache_get("stats")
+    if cached is not None:
+        return cached
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*) as total FROM politicos")
@@ -395,7 +435,9 @@ def stats():
     fun = cur.fetchone()['total']
     cur.close()
     conn.close()
-    return {"politicos": p, "casos": c, "noticias": n, "relaciones": rel, "familiares": fam, "funcionarios": fun}
+    result = {"politicos": p, "casos": c, "noticias": n, "relaciones": rel, "familiares": fam, "funcionarios": fun}
+    cache_set("stats", result)
+    return result
 
 # =============================================================================
 # PUNTO 4: Endpoints de Funcionarios de Gobierno
@@ -493,6 +535,11 @@ def detalle_funcionario(funcionario_id: int):
     cur.close()
     conn.close()
     return result
+
+@app.post("/api/cache/clear")
+def clear_cache():
+    cache_clear()
+    return {"ok": True, "message": "Caché limpiada"}
 
 if __name__ == "__main__":
     import uvicorn
