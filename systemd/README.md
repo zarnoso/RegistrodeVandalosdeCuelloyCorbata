@@ -3,6 +3,14 @@
 ## Instalar:
 
 ```bash
+# Crear archivo de credenciales fuera del repo (NUNCA subir a git)
+cat > /home/chumbeke/registro-devandalos/.env << 'EOF'
+DATABASE_URL=postgresql://usuario:password@host/db?sslmode=require
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+EOF
+chmod 600 /home/chumbeke/registro-devandalos/.env
+
 # Copiar archivos systemd
 sudo cp systemd/worker-noticias.service /etc/systemd/system/
 sudo cp systemd/worker-noticias.timer /etc/systemd/system/

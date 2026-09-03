@@ -257,8 +257,24 @@ def extraer_contenido(url, fuente):
     except: pass
     return ""
 
+def ya_existe(hash_contenido):
+    """Evita reprocesar y re-alertar sobre artículos ya guardados en corridas anteriores
+    (los feeds RSS suelen repetir los últimos N artículos en cada corrida)."""
+    def _check(c):
+        cur = c.cursor()
+        cur.execute("SELECT 1 FROM noticias WHERE hash_contenido = %s", (hash_contenido,))
+        r = cur.fetchone()
+        cur.close()
+        return r is not None
+    try:
+        return ejecutar_con_reconexion(_check)
+    except Exception:
+        return False  # ante duda, procesar igual — no perder una noticia real por error de conexión
+
 def procesar(articulo, fuente, indice):
     if not articulo["titulo"]: return None
+    h = hashlib.md5(f"{articulo['titulo']}{articulo['fuente']}".encode()).hexdigest()
+    if ya_existe(h): return None
     contenido = articulo["contenido"]
     if len(contenido) < 200 and articulo["url"]:
         c = extraer_contenido(articulo["url"], fuente)
@@ -266,7 +282,6 @@ def procesar(articulo, fuente, indice):
     if not contenido: contenido = articulo["titulo"]
     menciones = detectar(f"{articulo['titulo']} {contenido}", indice)
     if not menciones: return None
-    h = hashlib.md5(f"{articulo['titulo']}{articulo['fuente']}".encode()).hexdigest()
     fecha = None
     if articulo.get("fecha"):
         try:

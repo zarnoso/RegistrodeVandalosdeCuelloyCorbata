@@ -29,8 +29,6 @@ def cache_set(key, data):
 def cache_clear():
     _cache.clear()
 
-app = FastAPI(title="Registro de Vándalos API v3")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://registrodevandalos.likay.cl", "https://registrodevandalos.pages.dev", "http://192.168.100.23", "http://localhost:8006"],
@@ -525,6 +523,8 @@ def mapa_regiones():
     conn.close()
     
     return {"regiones": regiones}
+
+@app.get("/api/casos/")
 def casos(limit: int = 100, skip: int = 0):
     conn = get_db()
     cur = conn.cursor()

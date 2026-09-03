@@ -6,7 +6,7 @@ After=network.target
 Type=oneshot
 User=chumbeke
 WorkingDirectory=/home/chumbeke/registro-devandalos
-Environment=DATABASE_URL=postgresql://neondb_owner:npg_tV5U4lxucCWR@ep-dark-sunset-ah922o3v-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
+EnvironmentFile=/home/chumbeke/registro-devandalos/.env
 Environment=NOTICIAS_MAX_WORKERS=4
 Environment=NOTICIAS_BATCH_SIZE=20
 Environment=NOTICIAS_TIMEOUT=15

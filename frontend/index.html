@@ -485,10 +485,10 @@
     .timeline-year { position: absolute; top: -20px; font: 500 9px "DM Mono", monospace; color: var(--muted); transform: translateX(-50%); }
     .timeline-event { position: absolute; top: -5px; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 1px var(--line); cursor: pointer; transform: translateX(-50%); transition: transform 0.2s; z-index: 2; }
     .timeline-event:hover { transform: translateX(-50%) scale(1.4); }
-    .timeline-event.convicted { background: #dc3545; }
-    .timeline-event.open { background: #fd7e14; }
-    .timeline-event.closed { background: #6c757d; }
-    .timeline-event.no-date { background: #adb5bd; opacity: 0.6; }
+    .timeline-event.convicted { background: var(--red); }
+    .timeline-event.open { background: var(--amber); }
+    .timeline-event.closed { background: var(--muted); }
+    .timeline-event.no-date { background: var(--line); opacity: 0.6; }
     .timeline-tooltip { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 12px; border-radius: 6px; font-size: 10px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; max-width: 200px; white-space: normal; }
     .timeline-event:hover .timeline-tooltip { opacity: 1; }
 
@@ -688,19 +688,6 @@
 
     async function loadData() {
       try {
-        // #13: Leer URL hash para perfiles individuales
-        const hash = window.location.hash;
-        const match = hash.match(/^#perfil\/(\d+)/);
-        if (match) {
-          const politicoId = parseInt(match[1]);
-          const res = await fetch(`${API_BASE}/${politicoId}`);
-          if (res.ok) {
-            const p = await res.json();
-            $("#drawerBackdrop").classList.remove("open");
-            openProfile(politicoId);
-          }
-        }
-
         const res = await fetch(`${API_BASE}/?limit=500`);
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
@@ -727,6 +714,11 @@
         num_empresas: Number(p.num_empresas || 0),
         num_familiares: Number(p.num_familiares || 0)
       }));
+      // #13: abrir perfil directo desde la URL — recién ahora, con `people`
+      // ya cargado y `apiAvailable` ya seteado, para que openProfile pueda
+      // traer el detalle real en vez de mostrar el drawer vacío.
+      const hashMatch = window.location.hash.match(/^#perfil\/(\d+)/);
+      if (hashMatch) openProfile(parseInt(hashMatch[1]));
       if (apiAvailable) {
         const [graphResult, somResult, funcResult] = await Promise.allSettled([
           fetch(`${BACKEND_ORIGIN}/api/politicos/grafo?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
@@ -1013,7 +1005,7 @@
       const allowed = new Set(nodes.map(n => n.id));
       const edges = visibleEdges
         .filter(e => allowed.has(e.origen) && allowed.has(e.destino))
-        .map(e => ({ source: e.origen, target: e.destino }));
+        .map(e => ({ source: e.origen, target: e.destino, tipo: e.tipo }));
       
       // Force simulation
       const simulation = d3.forceSimulation(nodes)
@@ -1022,15 +1014,18 @@
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collision', d3.forceCollide().radius(d => d.radius + 5));
       
-      // Dibujar aristas
+      // Dibujar aristas — vínculos mediáticos (mención conjunta, sin confirmar)
+      // se ven punteados y tenues; verificados (familiar, negocios, etc.) sólidos.
       const link = g.append('g')
         .selectAll('line')
         .data(edges)
         .enter()
         .append('line')
         .attr('class', 'd3-link')
-        .attr('stroke', '#c4cec8')
-        .attr('stroke-width', 1.4);
+        .attr('stroke', d => d.tipo === 'mediatico' ? '#c4cec8' : '#8a7ab0')
+        .attr('stroke-width', d => d.tipo === 'mediatico' ? 0.8 : 1.6)
+        .attr('stroke-opacity', d => d.tipo === 'mediatico' ? 0.35 : 0.85)
+        .attr('stroke-dasharray', d => d.tipo === 'mediatico' ? '2,3' : null);
       
       // Dibujar nodos
       const node = g.append('g')
@@ -1115,6 +1110,13 @@
         lg.append('circle').attr('cx', 5).attr('cy', 5).attr('r', 5).attr('fill', item.color);
         lg.append('text').attr('x', 14).attr('y', 8).attr('font-size', 9).attr('font-family', 'DM Mono').attr('fill', '#66716d').text(item.label);
       });
+
+      // Aclaración del estilo de línea: sólido = verificado, punteado = solo mediático
+      const lineLegend = legend.append('g').attr('transform', `translate(110, 0)`);
+      lineLegend.append('line').attr('x1', 0).attr('y1', 5).attr('x2', 18).attr('y2', 5).attr('stroke', '#8a7ab0').attr('stroke-width', 1.6);
+      lineLegend.append('text').attr('x', 24).attr('y', 8).attr('font-size', 9).attr('font-family', 'DM Mono').attr('fill', '#66716d').text('Vínculo verificado');
+      lineLegend.append('line').attr('x1', 0).attr('y1', 21).attr('x2', 18).attr('y2', 21).attr('stroke', '#c4cec8').attr('stroke-width', 0.8).attr('stroke-dasharray', '2,3');
+      lineLegend.append('text').attr('x', 24).attr('y', 24).attr('font-size', 9).attr('font-family', 'DM Mono').attr('fill', '#66716d').text('Solo mención en prensa');
     }
     
     function renderApiNetworkStatic(svg) {
@@ -1303,9 +1305,9 @@
           <div class="timeline-container" id="timelineContainer">
             ${events.length > 1 ? `
               <div class="timeline-track"></div>
-              ${events.sort((a,b) => (a.año_inicio || a.año || 9999) - (b.año_inicio || b.año || 9999)).map((e, idx, arr) => {
+              ${events.sort((a,b) => (parseInt(a.fecha_inicio) || 9999) - (parseInt(b.fecha_inicio) || 9999)).map((e, idx, arr) => {
                 const state = ["absuelto","sobreseido","archivado"].includes(String(e.estado_actual||"").toLowerCase()) ? "closed" : ["en_revisión","investigado","formalizado"].includes(String(e.estado_actual||"").toLowerCase()) ? "open" : String(e.estado_actual||"").toLowerCase() === "condenado" ? "convicted" : "no-date";
-                const year = e.fecha_inicio || e.año || "—";
+                const year = e.fecha_inicio || "—";
                 const title = e.caso_nombre || "Caso sin nombre";
                 const pos = arr.length > 1 ? (idx / (arr.length - 1)) * 90 + 5 : 50;
                 return `<div class="timeline-event ${state}" style="left: ${pos}%" title="${escapeHtml(title)}"><span class="timeline-tooltip">${escapeHtml(title)} · ${escapeHtml(String(year))}</span></div>`;

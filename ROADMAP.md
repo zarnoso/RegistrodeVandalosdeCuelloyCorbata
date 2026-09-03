@@ -54,26 +54,28 @@ scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
 
 | # | Qué | Detalle |
 |---|---|---|
-| 6 | Grafo interactivo real (d3.js o vis-network) en vez del SVG a mano actual | el actual funciona pero es limitado (max ~70 nodos visibles, sin zoom/pan) |
-| 7 | Detectar "conexión no declarada": alias/familiar mencionado en prensa/casos sin fila en `relaciones` | esto es el corazón del objetivo del proyecto — visibilizar a quien "pasa piola" |
+| 6 | ✅ Grafo interactivo real (D3.js v7.9, zoom/pan/drag) | completado 2026-09-03 |
+| 7 | ✅ Detectar "conexión no declarada" (`/api/conexiones/no-declaradas`) | completado 2026-09-03 — corazón del objetivo del proyecto |
 | 7b | Umbral de relevancia para relaciones `mediatico` (ej. mínimo de menciones conjuntas) | con 7,809 filas de solo mención conjunta, sin umbral se diluye la señal real entre ruido editorial (dos políticos citados en una misma noticia de trámite no es necesariamente relevante) |
-| 8 | Timeline interactivo por año (hoy es lista vertical de eventos en el drawer) | mejor lectura de evolución temporal de un caso |
-| 9 | Índices `pg_trgm` sobre `casos_corrupcion.responsable` y `familiares.nombre_completo` | el `ILIKE '%x%'` no usa índice normal — con más datos esto degrada el rendimiento |
-| 10 | Caché con TTL corto (5-10 min) en `/api/politicos/` | reduce carga a Neon en picos de tráfico, dato no cambia por request |
+| 8 | ✅ Timeline interactivo por año en el drawer | completado 2026-09-03 |
+| 9 | ✅ Índices `pg_trgm` | completado 2026-09-03 — ver `migrations/001_pg_trgm_indices.sql` |
+| 10 | ✅ Caché TTL 5min en endpoints principales | completado 2026-09-03 |
 
 ## Pendiente — largo plazo / escala
 
 | # | Qué | Detalle |
 |---|---|---|
-| 11 | Scraping automatizado de prensa | ✅ implementado (`worker_noticias.py`, 6 fuentes) — falta punto 16 (programarlo) |
-| 12 | Alertas (Telegram u otro canal) cuando aparece un familiar/alias nuevo en prensa de corrupción | proactividad — avisar antes de que la conexión se pierda en el ruido |
-| 13 | URLs individuales por político/funcionario (`/perfil/123-nombre`) en vez de todo en un SPA con drawer | mejora indexación SEO y permite compartir un caso puntual |
-| 14 | Modo comparación: seleccionar 2-3 personas y ver sus redes combinadas | pedido explícito en `MEJORAS.md`, no implementado aún |
-| 15 | Mapa de calor (choropleth) de Chile por densidad de casos, en vez de la vista de barras actual | más intuitivo que "Lectura territorial" actual |
-| 16 | Sistema de alertas/cron diario para actualizar noticias automáticamente | el worker existe, falta programarlo |
+| 11 | ✅ Scraping automatizado de prensa | completado — `worker_noticias.py`, 6 fuentes |
+| 12 | ✅ Alertas Telegram | completado 2026-09-03 — con deduplicación agregada en la revisión |
+| 13 | ✅ URLs individuales (`#perfil/id`) | completado 2026-09-03 |
+| 14 | ✅ Modo comparación (`/api/comparar/`) | completado 2026-09-03 |
+| 15 | ✅ Mapa de calor por región (`/api/mapa/regiones`) | completado 2026-09-03 |
+| 16 | ✅ Cron diario (systemd timer) | completado 2026-09-03 |
 
 ## Notas técnicas activas
 
-- El backend abre una conexión Postgres por endpoint sin `try/finally` — si una query falla a mitad de camino, la conexión queda sin cerrar. No es urgente con el tráfico actual, pero conviene envolver en `try/finally` antes de escalar tráfico.
+- **Acción urgente pendiente del usuario: rotar la contraseña de Neon.** Estuvo hardcodeada en texto plano en `systemd/worker-noticias.service`, público en GitHub, hasta la revisión del 2026-09-03. Ya corregido en el código (usa `.env` externo), pero la credencial vieja debe considerarse comprometida.
+- `/api/cache/clear` es un `POST` público sin autenticación — bajo riesgo (solo limpia caché en memoria), pero conviene agregar un token simple antes de considerar el backend "cerrado".
+- El backend abre una conexión Postgres por endpoint; algunos ya usan `try/finally` (agregado en la sesión de caché), otros no todavía (`/api/conexiones/no-declaradas`, `/api/comparar/`, `/api/mapa/regiones`) — homogeneizar.
 - `SELECT *` se usa en varios endpoints de `funcionarios_gobierno` — funcional, pero trae columnas sin filtrar; preferible listar columnas explícitas si el schema crece.
 - Regla del proyecto: cada push debe agregar una entrada en `SPEC.md` con el detalle de qué cambió y por qué.

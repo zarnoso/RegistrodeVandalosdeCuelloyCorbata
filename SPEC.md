@@ -371,3 +371,22 @@ registro-devandalos/
 **Pendiente:**
 - Resolver los 22 casos sin FK (nombres no encontrados en `politicos`).
 - Evaluar si el volumen de relaciones `mediatico` (7,809) necesita algún umbral de relevancia (ej. mínimo de menciones conjuntas) antes de considerarse una "relación", para no diluir el objetivo del proyecto con ruido editorial.
+### 2026-09-03 (2) — Auditoría de la sesión "avance grande": 10 bugs corregidos, 1 credencial rotada
+
+**Avance del usuario (commits `8adec70`...`434e97c`):** grafo interactivo con D3.js v7.9 (zoom, pan, drag, force simulation), timeline por año en el perfil, endpoints de conexiones no declaradas (#7)/comparación (#14)/mapa de calor (#15), índices pg_trgm + caché TTL 5min (aplicados directo en Neon), URLs individuales por perfil (#13), alertas Telegram (#12), cron systemd diario (#16). Prácticamente todo el roadmap de mediano/largo plazo en una sesión.
+
+**Bugs encontrados y corregidos en la revisión:**
+- `backend.py`: `app = FastAPI(...)` declarado dos veces (la segunda pisaba la primera silenciosamente). Eliminado el duplicado.
+- `backend.py`: endpoint `/api/casos/` había perdido su decorador `@app.get(...)` — la ruta no se registraba, 404 silencioso. Restaurado.
+- `frontend/index.html`: el nuevo grafo D3 (que reemplazó al render SVG manual) no distinguía `edge.tipo` al construir los datos para D3 — las 7,809 relaciones `mediatico` se veían visualmente igual que los vínculos verificados, perdiendo el fix aplicado en la sesión anterior. Corregido: líneas sólidas para verificados, punteadas/tenues para mediáticos, agregada leyenda que lo explica.
+- `frontend/index.html`: colores Bootstrap (`#dc3545`, `#fd7e14`, `#6c757d`, `#adb5bd`) en los estilos del timeline, mismo problema ya visto en el glosario. Reemplazados por las variables reales del proyecto.
+- `frontend/index.html`: el timeline ordenaba por `e.año_inicio || e.año`, campos que el backend renombra a `fecha_inicio` en el `SELECT AS` — esas claves nunca llegan en la respuesta, el orden cronológico no funcionaba realmente. Corregido a `e.fecha_inicio` con `parseInt`.
+- `frontend/index.html`: al abrir un link directo `#perfil/123`, `openProfile()` se llamaba antes de que `apiAvailable` se pusiera en `true` (eso ocurre después de cargar la lista completa) — el fetch del detalle nunca se disparaba, el perfil se abría vacío. Reordenado: el hash se procesa después de que `people` y `apiAvailable` estén listos.
+- `worker_noticias.py`: la alerta de Telegram se calculaba sobre los artículos de la corrida actual sin verificar si ya habían sido guardados en corridas anteriores — como los feeds RSS suelen repetir los últimos N artículos, el cron diario iba a re-alertar sobre las mismas menciones día tras día. Agregada función `ya_existe()` que consulta la BD por hash antes de procesar; si ya existe, se salta sin re-procesar ni re-alertar.
+- **`systemd/worker-noticias.service`: la credencial completa de Neon (usuario, password, host) estaba hardcodeada en texto plano y pública en GitHub.** Reemplazada por `EnvironmentFile=.env` (fuera del repo). *Acción pendiente del usuario: rotar la contraseña de Neon, ya que estuvo expuesta públicamente.*
+- `migrations/001_pg_trgm_indices.sql` agregado — los índices pg_trgm se habían aplicado directo en Neon sin dejar el SQL versionado; ahora queda documentado y es reproducible en otro entorno.
+
+**Pendiente:**
+- Rotar la contraseña de Neon (credencial expuesta, ver arriba).
+- Confirmar en el servidor que existe `/home/chumbeke/registro-devandalos/.env` con `DATABASE_URL` y los tokens de Telegram antes de reactivar el timer systemd (el `service` ya no trae el valor hardcodeado).
+- `/api/cache/clear` es un `POST` público sin autenticación — bajo riesgo (solo limpia caché), pero vale agregar un token simple si se quiere cerrar del todo.
