@@ -49,14 +49,10 @@ FUENTES = {
         ],
     },
     "ciper": {
-        "nombre": "CIPER",
-        "base_url": "https://www.ciper.cl",
-        "scrapear_links": True,
-        "base_links": [
-            "https://www.ciper.cl/investigaciones/",
-            "https://www.ciper.cl/noticias/",
-            "https://www.ciper.cl/reportajes/",
-        ],
+        "nombre": "CIPER Chile",
+        "rss": "https://www.ciperchile.cl/feed/",
+        "base_url": "https://www.ciperchile.cl",
+        "selector_contenido": ".contenido-noticia, .cuerpo-noticia, article, .entry-content",
     },
     "ellibero": {
         "nombre": "El Líbero",
