@@ -167,7 +167,13 @@ def grafo(limit: int = 250):
     edges = []
 
     # Relaciones declaradas entre políticos (tabla relaciones — hoy vacía, listo para cuando se pueble)
-    cur.execute("SELECT politico_origen_id, politico_destino_id, tipo_relacion FROM relaciones WHERE activo = true LIMIT 200")
+    cur.execute("""
+        SELECT politico_origen_id, politico_destino_id, tipo_relacion
+        FROM relaciones
+        WHERE activo = true
+        ORDER BY (tipo_relacion != 'mediatico') DESC, id DESC
+        LIMIT 200
+    """)
     for r in cur.fetchall():
         edges.append({"origen": f"politico:{r['politico_origen_id']}", "destino": f"politico:{r['politico_destino_id']}", "tipo": r['tipo_relacion']})
 

@@ -353,3 +353,21 @@ registro-devandalos/
 
 **Confirmado con el usuario, no era bug:** `casos_corrupcion.politico_id` sí existe como FK real; el endpoint de detalle de funcionario usa tanto esa FK como el `ILIKE` por nombre como respaldo, sin riesgo de perder los 113 casos aún sin FK asignada.
 
+### 2026-09-03 — Worker de noticias, glosario, migración masiva de datos (con 3 correcciones)
+
+**Avance del usuario (worker de noticias, commits `faf6933`...`9e5cf99`):** `worker_noticias.py` — scraping automático de 6 fuentes de prensa chilena, conectado a `detalle_politico` para mostrar menciones reales en el drawer.
+
+**Avance del usuario (migración masiva, commit `298e22a`):**
+- Casos con FK real: 15 → 90/128 (70%), por matching de apellido paterno/materno/nombre completo/parcial. Quedan 22 sin resolver (nombres que no matchean con ningún político registrado, ej. "Franka Grez", "Eduardo Gordon" — revisar manualmente si son funcionarios/terceros o errores de tipeo en la fuente).
+- `relaciones`: 5 filas sintéticas → 7,809 reales, generadas por coincidencia de mención conjunta en `noticias_menciones` (tipo `mediatico`, sin confirmación judicial).
+- `noticias`: 414 filas. `noticias_menciones`: 3,670 filas.
+- Glosario "Guía rápida" agregado en el frontend: 4 tarjetas explicando riesgo propio / riesgo heredado / vínculo mediático / sin antecedentes.
+
+**Correcciones aplicadas en la revisión:**
+- Glosario usaba colores Bootstrap (`#dc3545`, `#fd7e14`, `#0dcaf0`, `#6c757d`) ajenos a la paleta del proyecto — reemplazados por las variables reales del sistema de diseño (`--red`, `--amber`, `--cobalt`, `--muted`) para que coincida visualmente con el resto del sitio (tarjetas, mapas, grafo).
+- El grafo (`renderApiNetwork`) dibujaba todas las aristas igual, sin distinguir `tipo_relacion` — con 7,809 relaciones `mediatico` (no confirmadas) mezcladas visualmente con vínculos verificados (familiar, negocios), el grafo no reflejaba lo que el glosario promete. Corregido: aristas `mediatico` ahora se ven punteadas y tenues; las verificadas, sólidas y más marcadas.
+- El backend traía las 200 relaciones del `LIMIT` sin orden — con 7,809 filas mayormente `mediatico`, la muestra de 200 podía quedar dominada por vínculos no confirmados, dejando fuera las pocas relaciones verificadas. Corregido: `ORDER BY` prioriza relaciones no-mediáticas primero, y solo llena el resto del cupo con mediáticas.
+
+**Pendiente:**
+- Resolver los 22 casos sin FK (nombres no encontrados en `politicos`).
+- Evaluar si el volumen de relaciones `mediatico` (7,809) necesita algún umbral de relevancia (ej. mínimo de menciones conjuntas) antes de considerarse una "relación", para no diluir el objetivo del proyecto con ruido editorial.

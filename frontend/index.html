@@ -239,10 +239,10 @@
     .glossary-item { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; border-left: 3px solid var(--teal); }
     .glossary-item h3 { font-size: 14px; margin-bottom: 8px; color: var(--paper); }
     .glossary-item p { font-size: 13px; color: var(--muted); line-height: 1.5; }
-    .glossary-item:nth-child(1) { border-left-color: #dc3545; }
-    .glossary-item:nth-child(2) { border-left-color: #fd7e14; }
-    .glossary-item:nth-child(3) { border-left-color: #0dcaf0; }
-    .glossary-item:nth-child(4) { border-left-color: #6c757d; }
+    .glossary-item:nth-child(1) { border-left-color: var(--red); }
+    .glossary-item:nth-child(2) { border-left-color: var(--amber); }
+    .glossary-item:nth-child(3) { border-left-color: var(--cobalt); }
+    .glossary-item:nth-child(4) { border-left-color: var(--muted); }
 
     .metrics {
       display: grid;
@@ -949,9 +949,15 @@
       edges.forEach(edge => {
         const from=positions.get(edge.origen), to=positions.get(edge.destino);
         if(!from||!to)return;
+        // Vínculos mediáticos (mención conjunta en noticias, sin confirmar) se muestran
+        // punteados y tenues; vínculos verificados (familiar, negocios, etc.) sólidos.
+        const isMediatico = edge.tipo === "mediatico";
         svg.append(svgEl("line",{
           x1:from.x,y1:from.y,x2:to.x,y2:to.y,
-          stroke:"#c4cec8","stroke-width":"1.4","stroke-opacity":".8"
+          stroke: isMediatico ? "#c4cec8" : "#8a7ab0",
+          "stroke-width": isMediatico ? "0.8" : "1.6",
+          "stroke-opacity": isMediatico ? ".35" : ".85",
+          ...(isMediatico ? {"stroke-dasharray":"2,3"} : {})
         }));
       });
       nodes.forEach(node => {

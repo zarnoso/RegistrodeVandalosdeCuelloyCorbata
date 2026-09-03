@@ -30,16 +30,21 @@ scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
 | Frontend | Vista "Funcionarios" con tarjetas y drawer de detalle | 2026-09-02 |
 | Infra | Eliminados 4 archivos de red conflictivos (`_worker.js`, `_middleware.js`, 2× `wrangler.toml`) que apuntaban a 3 dominios/puertos distintos | 2026-09-01 |
 | Infra | `.gitignore`, sin credenciales ni `__pycache__`/`.wrangler` en el repo | 2026-09-01 |
+| Backend | Scraping automático de 6 fuentes de prensa (`worker_noticias.py`), conectado al detalle de político | 2026-09-03 |
+| Backend | `casos_corrupcion.politico_id` migrado 15→90/128 (70%) | 2026-09-03 |
+| Backend | `relaciones` poblada 5→7,809 (mención conjunta en noticias, tipo `mediatico`) | 2026-09-03 |
+| Frontend | Glosario "Guía rápida" (4 tarjetas: riesgo propio/heredado, vínculo mediático, sin antecedentes) | 2026-09-03 |
+| Frontend | Grafo distingue visualmente vínculos verificados (sólido) de mediáticos/no confirmados (punteado, tenue) | 2026-09-03 |
 
 ## Pendiente — corto plazo (alto impacto, bajo esfuerzo)
 
 | # | Qué | Por qué importa | Bloqueante |
 |---|---|---|---|
-| 1 | Poblar `relaciones` con datos reales (hoy 0 filas) | el grafo solo muestra familiares; sin esto no hay vínculos amistad/negocios/político visibles | scraping o carga manual |
-| 2 | Poblar `noticias_menciones` (hoy 0 filas, salvo pruebas sintéticas) | bloquea el timeline de prensa por persona | pipeline de matching nombre↔noticia |
-| 3 | Migrar el resto de `casos_corrupcion` a FK real (113/128 siguen en `NULL`) | el `ILIKE` por nombre es frágil ante homónimos/variaciones de escritura | requiere revisión manual o mejor matching |
-| 4 | Hero explicativo en la portada (qué es, para qué sirve, cómo se usa) | primera impresión — hoy el usuario cae directo a la lista sin contexto | ninguno, es solo frontend |
-| 5 | Sección "Cómo leer esto" / glosario (qué es alerta roja, qué es riesgo heredado) | evita malas interpretaciones, refuerza el disclaimer legal ya existente | ninguno |
+| 1 | ✅ Poblar `relaciones` con datos reales | completado 2026-09-03 — 7,809 filas (mención conjunta en noticias, tipo `mediatico`) | — |
+| 2 | ✅ Poblar `noticias_menciones` | completado 2026-09-03 — 3,670 filas, vía `worker_noticias.py` | — |
+| 3 | Migrar el resto de `casos_corrupcion` a FK real | avanzó 15→90/128 (70%) el 2026-09-03; quedan 22 sin resolver por nombre no encontrado en `politicos` (revisar manualmente) | ninguno, es revisión de datos |
+| 4 | ✅ Hero explicativo en la portada | ya existía, sin cambios | — |
+| 5 | ✅ Glosario ("Guía rápida") | completado 2026-09-03 — 4 tarjetas con la paleta de color real del sitio | — |
 
 ## Pendiente — mediano plazo
 
@@ -47,6 +52,7 @@ scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
 |---|---|---|
 | 6 | Grafo interactivo real (d3.js o vis-network) en vez del SVG a mano actual | el actual funciona pero es limitado (max ~70 nodos visibles, sin zoom/pan) |
 | 7 | Detectar "conexión no declarada": alias/familiar mencionado en prensa/casos sin fila en `relaciones` | esto es el corazón del objetivo del proyecto — visibilizar a quien "pasa piola" |
+| 7b | Umbral de relevancia para relaciones `mediatico` (ej. mínimo de menciones conjuntas) | con 7,809 filas de solo mención conjunta, sin umbral se diluye la señal real entre ruido editorial (dos políticos citados en una misma noticia de trámite no es necesariamente relevante) |
 | 8 | Timeline interactivo por año (hoy es lista vertical de eventos en el drawer) | mejor lectura de evolución temporal de un caso |
 | 9 | Índices `pg_trgm` sobre `casos_corrupcion.responsable` y `familiares.nombre_completo` | el `ILIKE '%x%'` no usa índice normal — con más datos esto degrada el rendimiento |
 | 10 | Caché con TTL corto (5-10 min) en `/api/politicos/` | reduce carga a Neon en picos de tráfico, dato no cambia por request |
