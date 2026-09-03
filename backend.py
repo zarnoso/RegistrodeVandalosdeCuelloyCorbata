@@ -237,6 +237,64 @@ def grafo(limit: int = 250):
     cache_set("grafo", result)
     return result
 
+# =============================================================================
+# PUNTO 7: Detectar conexiones no declaradas
+# =============================================================================
+@app.get("/api/conexiones/no-declaradas")
+def conexiones_no_declaradas(limit: int = 50):
+    """Detecta familiares/alias mencionados en prensa o casos sin fila en `relaciones`."""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # 1. Familiares con casos que no están en `relaciones`
+    cur.execute("""
+        SELECT f.politico_id, f.nombre_completo as familiar_nombre, f.parentesco,
+               p.nombre_completo as politico_nombre,
+               COUNT(*) as casos_count
+        FROM familiares f
+        JOIN politicos p ON p.id = f.politico_id
+        JOIN casos_corrupcion cc ON cc.responsable ILIKE '%%' || f.nombre_completo || '%%'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM relaciones r 
+            WHERE r.politico_origen_id = f.politico_id 
+            AND r.descripcion ILIKE '%%' || f.nombre_completo || '%%'
+        )
+        GROUP BY f.politico_id, f.nombre_completo, f.parentesco, p.nombre_completo
+        ORDER BY casos_count DESC
+        LIMIT %s
+    """, (limit,))
+    
+    familiares_sin_relacion = [dict(r) for r in cur.fetchall()]
+    
+    # 2. Alias mencionados en noticias sin relación declarada
+    cur.execute("""
+        SELECT pa.politico_id, pa.alias_nombre, pa.alias_tipo,
+               p.nombre_completo as politico_nombre,
+               COUNT(DISTINCT nm.noticia_id) as menciones
+        FROM politicos_aliases pa
+        JOIN politicos p ON p.id = pa.politico_id
+        JOIN noticias_menciones nm ON nm.politico_id = pa.politico_id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM relaciones r 
+            WHERE r.politico_origen_id = pa.politico_id 
+            AND r.descripcion ILIKE '%%' || pa.alias_nombre || '%%'
+        )
+        GROUP BY pa.politico_id, pa.alias_nombre, pa.alias_tipo, p.nombre_completo
+        ORDER BY menciones DESC
+        LIMIT %s
+    """, (limit,))
+    
+    alias_sin_relacion = [dict(r) for r in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    
+    return {
+        "familiares_sin_relacion": familiares_sin_relacion,
+        "alias_sin_relacion": alias_sin_relacion,
+        "total": len(familiares_sin_relacion) + len(alias_sin_relacion)
+    }
+
 @app.get("/api/politicos/analitica/som")
 def som(limit: int = 500):
     conn = get_db()
@@ -404,7 +462,69 @@ def buscar_por_alias(nombre: str, tipo: str = None):
     conn.close()
     return resultado
 
-@app.get("/api/casos/")
+@app.get("/api/comparar/")
+def comparar_politicos(ids: str):
+    """Comparar 2-3 políticos: devuelve datos combinados para modo comparación."""
+    politico_ids = [int(x) for x in ids.split(",") if x.strip().isdigit()][:3]
+    if len(politico_ids) < 2:
+        raise HTTPException(status_code=400, detail="Se requieren al menos 2 políticos")
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT id, nombre_completo, tipo, region, partido,
+               (SELECT COUNT(*) FROM casos_corrupcion WHERE politico_id = p.id OR responsable ILIKE '%%' || p.nombre_completo || '%%') as casos_count,
+               (SELECT COUNT(*) FROM familiares WHERE politico_id = p.id) as familiares_count,
+               (SELECT COUNT(*) FROM noticias_menciones WHERE politico_id = p.id) as menciones_count
+        FROM politicos p
+        WHERE id = ANY(%s)
+    """, (politico_ids,))
+    
+    politicos = [dict(r) for r in cur.fetchall()]
+    
+    # Relaciones cruzadas
+    cur.execute("""
+        SELECT * FROM relaciones
+        WHERE politico_origen_id = ANY(%s) OR politico_destino_id = ANY(%s)
+        LIMIT 100
+    """, (politico_ids, politico_ids))
+    relaciones = [dict(r) for r in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    
+    return {
+        "politicos": politicos,
+        "relaciones": relaciones,
+        "total": len(politicos)
+    }
+
+@app.get("/api/mapa/regiones")
+def mapa_regiones():
+    """Densidad de casos por región para el mapa de calor (choropleth)."""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT region, 
+               COUNT(*) as total_casos,
+               COUNT(DISTINCT politico_id) as total_politicos
+        FROM (
+            SELECT cc.responsable, cc.region, cc.politico_id
+            FROM casos_corrupcion cc
+            WHERE cc.region IS NOT NULL AND cc.region != ''
+        ) sub
+        GROUP BY region
+        ORDER BY total_casos DESC
+    """)
+    
+    regiones = [dict(r) for r in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    
+    return {"regiones": regiones}
 def casos(limit: int = 100, skip: int = 0):
     conn = get_db()
     cur = conn.cursor()
