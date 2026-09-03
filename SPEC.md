@@ -390,3 +390,21 @@ registro-devandalos/
 - Rotar la contraseña de Neon (credencial expuesta, ver arriba).
 - Confirmar en el servidor que existe `/home/chumbeke/registro-devandalos/.env` con `DATABASE_URL` y los tokens de Telegram antes de reactivar el timer systemd (el `service` ya no trae el valor hardcodeado).
 - `/api/cache/clear` es un `POST` público sin autenticación — bajo riesgo (solo limpia caché), pero vale agregar un token simple si se quiere cerrar del todo.
+
+### 2026-09-03 (3) — Merge con reestructuración de frontend + segunda credencial expuesta
+
+**Avance del usuario en paralelo (commits `1e116b1`, `c3051ee`):** frontend separado en 3 archivos (`index.html` ~300 líneas, `assets/css/styles.css`, `assets/js/app.js`, antes 1372 líneas en un solo archivo); `tests/test_backend.py` con 15 tests; `setup.sh` con instalación automática y flag `--install-systemd`; migración `pg_trgm` documentada de forma independiente.
+
+**Conflicto de merge:** la reestructuración del frontend chocó con los 6 fixes aplicados en la sesión anterior (todos vivían en el `index.html` monolítico). Se tomó la nueva estructura separada como base — es la dirección correcta, más mantenible — y se **reaplicaron los 6 fixes sobre `app.js`/`styles.css`**, verificando cada uno:
+- Colores Bootstrap del timeline → paleta del proyecto.
+- Distinción visual `mediatico`/verificado en el grafo D3 (se había perdido de nuevo en la migración a `app.js`) + leyenda.
+- Timeline con `fecha_inicio` real en vez de `año_inicio`/`año` inexistentes.
+- Bug de secuencia `apiAvailable` con `#perfil/id`.
+
+**Segunda credencial de Neon expuesta encontrada:** `tests/test_backend.py` tenía la misma contraseña ya expuesta en `systemd/worker-noticias.service`, hardcodeada como `os.environ.setdefault(...)`. Reemplazada por un placeholder (`usuario:password@localhost`) — los tests que requieren BD real fallarán sin una `DATABASE_URL` real exportada por quien los corra, lo cual es el comportamiento correcto (evita apuntar a producción por accidente).
+
+**Otras correcciones:**
+- Migración `pg_trgm` duplicada con nombre casi idéntico (`001_pg_trgm_indexes.sql` vs `001_pg_trgm_indices.sql`) — consolidada en la más completa (incluía además el índice de `politicos.nombre_completo`, ausente en la otra).
+- `setup.sh`: no validaba la existencia de `.env` antes de instalar systemd (fallaría silenciosamente al arrancar el timer sin `DATABASE_URL`); mencionaba `mapata-full.service`, de otro proyecto del usuario. Ambos corregidos.
+
+**Pendiente reforzado:** rotar la contraseña de Neon es ahora más urgente — estuvo expuesta en **dos** archivos distintos del repo público, no solo uno.

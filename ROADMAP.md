@@ -74,7 +74,7 @@ scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
 
 ## Notas técnicas activas
 
-- **Acción urgente pendiente del usuario: rotar la contraseña de Neon.** Estuvo hardcodeada en texto plano en `systemd/worker-noticias.service`, público en GitHub, hasta la revisión del 2026-09-03. Ya corregido en el código (usa `.env` externo), pero la credencial vieja debe considerarse comprometida.
+- **Acción urgente pendiente del usuario: rotar la contraseña de Neon.** Estuvo hardcodeada en texto plano en **dos archivos distintos** (`systemd/worker-noticias.service` y `tests/test_backend.py`), públicos en GitHub, hasta la revisión del 2026-09-03. Ya corregido en el código (usa `.env` externo / placeholder en tests), pero la credencial vieja debe considerarse comprometida.
 - `/api/cache/clear` es un `POST` público sin autenticación — bajo riesgo (solo limpia caché en memoria), pero conviene agregar un token simple antes de considerar el backend "cerrado".
 - El backend abre una conexión Postgres por endpoint; algunos ya usan `try/finally` (agregado en la sesión de caché), otros no todavía (`/api/conexiones/no-declaradas`, `/api/comparar/`, `/api/mapa/regiones`) — homogeneizar.
 - `SELECT *` se usa en varios endpoints de `funcionarios_gobierno` — funcional, pero trae columnas sin filtrar; preferible listar columnas explícitas si el schema crece.
