@@ -688,6 +688,19 @@
 
     async function loadData() {
       try {
+        // #13: Leer URL hash para perfiles individuales
+        const hash = window.location.hash;
+        const match = hash.match(/^#perfil\/(\d+)/);
+        if (match) {
+          const politicoId = parseInt(match[1]);
+          const res = await fetch(`${API_BASE}/${politicoId}`);
+          if (res.ok) {
+            const p = await res.json();
+            $("#drawerBackdrop").classList.remove("open");
+            openProfile(politicoId);
+          }
+        }
+
         const res = await fetch(`${API_BASE}/?limit=500`);
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
@@ -1254,6 +1267,10 @@
     }
 
     async function openProfile(id) {
+      // #13: Actualizar URL hash para perfil individual
+      if (id) {
+        history.pushState(null, '', `#perfil/${id}`);
+      }
       let p=people.find(x=>x.id===String(id));
       if(apiAvailable){
         try {

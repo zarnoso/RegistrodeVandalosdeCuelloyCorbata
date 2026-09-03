@@ -1,0 +1,19 @@
+[Unit]
+Description=Worker de Noticias - Registro de Vándalos
+After=network.target
+
+[Service]
+Type=oneshot
+User=chumbeke
+WorkingDirectory=/home/chumbeke/registro-devandalos
+Environment=DATABASE_URL=postgresql://neondb_owner:npg_tV5U4lxucCWR@ep-dark-sunset-ah922o3v-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
+Environment=NOTICIAS_MAX_WORKERS=4
+Environment=NOTICIAS_BATCH_SIZE=20
+Environment=NOTICIAS_TIMEOUT=15
+Environment=NOTICIOS_MAX_ARTICULOS=50
+ExecStart=/home/chumbeke/esphome-venv/bin/python3 /home/chumbeke/registro-devandalos/worker_noticias.py
+StandardOutput=append:/var/log/worker-noticias.log
+StandardError=append:/var/log/worker-noticias.log
+
+[Install]
+WantedBy=multi-user.target
