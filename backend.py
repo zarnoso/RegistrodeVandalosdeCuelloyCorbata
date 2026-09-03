@@ -97,16 +97,16 @@ def listar_politicos(limit: int = 500, skip: int = 0):
         cur.execute("""
             SELECT
                 p.id, p.nombre_completo, p.tipo, p.region, p.partido,
-                COALESCE(cc.casos_count, 0) AS casos_count,
-                COALESCE(fam.fam_count, 0) AS fam_count,
-                COALESCE(pat.pat_count, 0) AS pat_count,
+                COALESCE(cc.casos_count, 0) AS num_eventos,
+                COALESCE(fam.fam_count, 0) AS num_familiares,
+                COALESCE(pat.pat_count, 0) AS num_empresas,
                 COALESCE(fam_casos.casos_familiares, 0) AS casos_familiares
             FROM politicos p
             LEFT JOIN (
-                SELECT responsable, COUNT(*) AS casos_count
+                SELECT politico_id, COUNT(*) AS casos_count
                 FROM casos_corrupcion
-                GROUP BY responsable
-            ) cc ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
+                GROUP BY politico_id
+            ) cc ON cc.politico_id = p.id
             LEFT JOIN (
                 SELECT politico_id, COUNT(*) AS fam_count
                 FROM familiares
@@ -130,18 +130,18 @@ def listar_politicos(limit: int = 500, skip: int = 0):
         rows = cur.fetchall()
         resultado = []
         for r in rows:
-            casos_count = r['casos_count']
+            num_eventos = r['num_eventos']
             casos_familiares = r['casos_familiares']
-            estado_riesgo = calcular_riesgo_heredado(casos_count, casos_familiares)
+            estado_riesgo = calcular_riesgo_heredado(num_eventos, casos_familiares)
             tipo = (r['tipo'] or "").lower()
-            cargo = "Diputado" if "diputado" in tipo else "Senador" if "senador" in tipo else "Investigado" if "investigado" in tipo else tipo.capitalize() if tipo else "Otro"
+            cargo = "Diputado" if "diputado" in tipo else "Senador" if "senador" in tipo else tipo.capitalize() if tipo else "Otro"
             resultado.append({
                 "id": r['id'], "nombre_completo": r['nombre_completo'] or "Sin nombre",
                 "tipo": r['tipo'], "region": r['region'] or "Sin región",
                 "institucion": "Congreso", "cargo": cargo,
                 "partido": r['partido'] or "Sin partido", "estado_riesgo": estado_riesgo,
-                "num_eventos": casos_count, "num_empresas": r['pat_count'],
-                "num_familiares": r['fam_count'], "casos_familiares": casos_familiares,
+                "num_eventos": num_eventos, "num_empresas": r['num_empresas'],
+                "num_familiares": r['num_familiares'], "casos_familiares": casos_familiares,
                 "eventos": [], "patrimonios": [],
             })
     finally:
@@ -202,7 +202,7 @@ def detalle_politico(politico_id: int):
         if not p:
             raise HTTPException(status_code=404, detail="Político no encontrado")
         cur.execute("""
-            SELECT nombre as caso_nombre, fecha_inicio, estado_actual, resumen, fuente, fuente_url
+            SELECT nombre as caso_nombre, año_inicio as fecha_inicio, estado, sentencia as resumen, fuente_url, delitos, conclusión as conclusion
             FROM casos_corrupcion WHERE politico_id = %s OR responsable ILIKE %s ORDER BY año_inicio DESC NULLS LAST
         """, (politico_id, f"%{p['nombre_completo']}%"))
         eventos = [dict(row) for row in cur.fetchall()]
