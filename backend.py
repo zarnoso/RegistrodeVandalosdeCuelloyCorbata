@@ -100,7 +100,8 @@ def listar_politicos(limit: int = 500, skip: int = 0):
                 COALESCE(cc.casos_count, 0) AS num_eventos,
                 COALESCE(fam.fam_count, 0) AS num_familiares,
                 COALESCE(pat.pat_count, 0) AS num_empresas,
-                COALESCE(fam_casos.casos_familiares, 0) AS casos_familiares
+                COALESCE(fam_casos.casos_familiares, 0) AS casos_familiares,
+                del.delitos_resumen
             FROM politicos p
             LEFT JOIN (
                 SELECT politico_id, COUNT(*) AS casos_count
@@ -123,6 +124,12 @@ def listar_politicos(limit: int = 500, skip: int = 0):
                 JOIN casos_corrupcion cc2 ON cc2.responsable ILIKE '%%' || f.nombre_completo || '%%'
                 GROUP BY f.politico_id
             ) fam_casos ON fam_casos.politico_id = p.id
+            LEFT JOIN (
+                SELECT politico_id, STRING_AGG(DISTINCT delitos, ' · ' ORDER BY delitos) AS delitos_resumen
+                FROM casos_corrupcion
+                WHERE delitos IS NOT NULL AND delitos != ''
+                GROUP BY politico_id
+            ) del ON del.politico_id = p.id
             ORDER BY p.nombre_completo
             LIMIT %s OFFSET %s
         """, (limit, skip))
@@ -142,6 +149,7 @@ def listar_politicos(limit: int = 500, skip: int = 0):
                 "partido": r['partido'] or "Sin partido", "estado_riesgo": estado_riesgo,
                 "num_eventos": num_eventos, "num_empresas": r['num_empresas'],
                 "num_familiares": r['num_familiares'], "casos_familiares": casos_familiares,
+                "delitos_resumen": r['delitos_resumen'] or None,
                 "eventos": [], "patrimonios": [],
             })
     finally:

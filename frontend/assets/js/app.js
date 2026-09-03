@@ -4,12 +4,12 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
     const API_CASES = `${BACKEND_ORIGIN}/api/casos`;
     const REGION_ORDER = ["Arica y Parinacota","Tarapacá","Antofagasta","Atacama","Coquimbo","Valparaíso","Metropolitana","O'Higgins","Maule","Ñuble","Biobío","La Araucanía","Los Ríos","Los Lagos","Aysén","Magallanes"];
     const fallback = [
-      {id:"d1",nombre_completo:"Persona Demostración Norte",cargo:"Diputada",partido:"Partido de ejemplo",region:"Antofagasta",institucion:"Cámara",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]},
-      {id:"d2",nombre_completo:"Persona Demostración Centro",cargo:"Senador",partido:"Independiente",region:"Metropolitana",institucion:"Senado",estado_riesgo:"alerta_naranja",num_eventos:2,num_empresas:1,eventos:[{fecha_inicio:"2025-03-18",caso_nombre:"Revisión administrativa ficticia",estado_actual:"en_revisión",resumen:"Contenido sintético para demostrar la línea temporal.",fuente:"Fuente de demostración"}],patrimonios:[]},
-      {id:"d3",nombre_completo:"Persona Demostración Costa",cargo:"Alcaldesa",partido:"Movimiento local",region:"Valparaíso",institucion:"Municipalidad",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:0,eventos:[],patrimonios:[]},
-      {id:"d4",nombre_completo:"Persona Demostración Sur",cargo:"Diputado",partido:"Partido de ejemplo",region:"Biobío",institucion:"Cámara",estado_riesgo:"alerta_roja",num_eventos:1,num_empresas:3,eventos:[{fecha_inicio:"2024-11-02",caso_nombre:"Caso judicial ficticio",estado_actual:"formalizado",resumen:"Ejemplo sin relación con hechos o personas reales.",fuente:"Fuente de demostración"}],patrimonios:[]},
-      {id:"d5",nombre_completo:"Persona Demostración Austral",cargo:"Consejera regional",partido:"Independiente",region:"Magallanes",institucion:"Gobierno regional",estado_riesgo:"alerta_naranja",num_eventos:1,num_empresas:1,eventos:[{fecha_inicio:"2025-09-10",caso_nombre:"Auditoría ficticia",estado_actual:"investigado",resumen:"Registro sintético de interfaz.",fuente:"Fuente de demostración"}],patrimonios:[]},
-      {id:"d6",nombre_completo:"Persona Demostración Valle",cargo:"Senadora",partido:"Coalición ejemplo",region:"Maule",institucion:"Senado",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,eventos:[],patrimonios:[]}
+      {id:"d1",nombre_completo:"Persona Demostración Norte",cargo:"Diputada",partido:"Partido de ejemplo",region:"Antofagasta",institucion:"Cámara",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,delitos_resumen:null,eventos:[],patrimonios:[]},
+      {id:"d2",nombre_completo:"Persona Demostración Centro",cargo:"Senador",partido:"Independiente",region:"Metropolitana",institucion:"Senado",estado_riesgo:"alerta_naranja",num_eventos:2,num_empresas:1,delitos_resumen:"Malversación · Cohecho",eventos:[{fecha_inicio:"2025-03-18",caso_nombre:"Revisión administrativa ficticia",estado_actual:"en_revisión",resumen:"Contenido sintético para demostrar la línea temporal.",fuente:"Fuente de demostración"}],patrimonios:[]},
+      {id:"d3",nombre_completo:"Persona Demostración Costa",cargo:"Alcaldesa",partido:"Movimiento local",region:"Valparaíso",institucion:"Municipalidad",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:0,delitos_resumen:null,eventos:[],patrimonios:[]},
+      {id:"d4",nombre_completo:"Persona Demostración Sur",cargo:"Diputado",partido:"Partido de ejemplo",region:"Biobío",institucion:"Cámara",estado_riesgo:"alerta_roja",num_eventos:1,num_empresas:3,delitos_resumen:"Lavado de activos",eventos:[{fecha_inicio:"2024-11-02",caso_nombre:"Caso judicial ficticio",estado_actual:"formalizado",resumen:"Ejemplo sin relación con hechos o personas reales.",fuente:"Fuente de demostración"}],patrimonios:[]},
+      {id:"d5",nombre_completo:"Persona Demostración Austral",cargo:"Consejera regional",partido:"Independiente",region:"Magallanes",institucion:"Gobierno regional",estado_riesgo:"alerta_naranja",num_eventos:1,num_empresas:1,delitos_resumen:"Peculado",eventos:[{fecha_inicio:"2025-09-10",caso_nombre:"Auditoría ficticia",estado_actual:"investigado",resumen:"Registro sintético de interfaz.",fuente:"Fuente de demostración"}],patrimonios:[]},
+      {id:"d6",nombre_completo:"Persona Demostración Valle",cargo:"Senadora",partido:"Coalición ejemplo",region:"Maule",institucion:"Senado",estado_riesgo:"sin_registros",num_eventos:0,num_empresas:2,delitos_resumen:null,eventos:[],patrimonios:[]}
     ];
 
     let people = [], filtered = [], selectedRegion = null, currentView = "territory", activeFilter = "all", apiAvailable = false;    let casesData = [], filteredCases = [], caseFilters = { estado_procesal: "all", tipo_alerta: "all" };
@@ -51,7 +51,8 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
         region: p.region || "Sin región",
         num_eventos: Number(p.num_eventos || 0),
         num_empresas: Number(p.num_empresas || 0),
-        num_familiares: Number(p.num_familiares || 0)
+        num_familiares: Number(p.num_familiares || 0),
+        delitos_resumen: p.delitos_resumen || null
       }));
       // #13: abrir perfil directo desde la URL — recién ahora, con `people`
       // ya cargado y `apiAvailable` ya seteado, para que openProfile pueda
@@ -128,12 +129,15 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
 
     function renderList() {
       $("#resultsCount").textContent = `${filtered.length} resultado${filtered.length===1?"":"s"}`;
-      $("#personList").innerHTML = filtered.length ? filtered.map(p => `
+      $("#personList").innerHTML = filtered.length ? filtered.map(p => {
+        const delitosHtml = p.delitos_resumen ? `<span class="person-delitos">${escapeHtml(p.delitos_resumen)}</span>` : '';
+        return `
         <button class="person" data-person="${escapeHtml(p.id)}">
           <span class="avatar">${escapeHtml(initials(p.nombre_completo))}</span>
-          <span><span class="person-name">${escapeHtml(p.nombre_completo)}</span><span class="person-meta">${escapeHtml(p.cargo)} · ${escapeHtml(p.region)}</span><span class="person-meta">${escapeHtml(p.num_eventos || 0)} caso(s) · ${escapeHtml(formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado")))}</span></span>
+          <span><span class="person-name">${escapeHtml(p.nombre_completo)}</span><span class="person-meta">${escapeHtml(p.cargo)} · ${escapeHtml(p.region)}</span>${delitosHtml}<span class="person-meta">${escapeHtml(p.num_eventos || 0)} caso(s) · ${escapeHtml(formatProcessState(p.estado_procesal_ultimo_evento || (p.estado_riesgo === "alerta_roja" ? "condenado" : p.estado_riesgo === "alerta_naranja" ? "abierto" : "sin_estado")))}</span></span>
           <span class="risk ${riskGroup(p)==="formal"?"red":riskGroup(p)==="review"?"amber":""}" title="${escapeHtml(riskGroup(p))}"></span>
-        </button>`).join("") : `<div class="empty">No hay resultados con estos filtros.<br>Prueba otra región o estado.</div>`;
+        </button>`;
+      }).join("") : `<div class="empty">No hay resultados con estos filtros.<br>Prueba otra región o estado.</div>`;
       document.querySelectorAll("[data-person]").forEach(btn => btn.addEventListener("click", () => openProfile(btn.dataset.person)));
     }
 
@@ -394,11 +398,11 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
         .attr('dy', d => d.radius + 12)
         .text(d => d.nombre.split(' ').slice(0, 2).join(' '));
       
-      // Click en políticos
+      // Click en políticos — solo abre el drawer, sin destruir el grafo
       node.filter(d => d.tipo === 'politico')
         .on('click', (event, d) => {
+          event.stopPropagation();
           const polId = d.id.replace('politico:', '');
-          container.innerHTML = '<svg id="vizSvg" viewBox="0 0 800 500"></svg>';
           openProfile(parseInt(polId));
         });
       
@@ -640,6 +644,7 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
           <span>Último estado procesal:</span>
           <strong>${escapeHtml(formatProcessState(processState))}</strong>
         </div>
+        ${p.delitos_resumen ? `<section class="detail-section"><h3>Problemas legales</h3><div class="delitos-tags">${p.delitos_resumen.split(' · ').map(d => `<span class="delito-tag">${escapeHtml(d)}</span>`).join('')}</div></section>` : ''}
         <section class="detail-section"><h3>📅 Timeline de casos</h3>
           <div class="timeline-container" id="timelineContainer">
             ${events.length > 1 ? `

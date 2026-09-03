@@ -390,6 +390,33 @@
     .risk.red { background: var(--red); }
     .risk.amber { background: var(--amber); }
 
+    .person-delitos {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--red);
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 2px;
+      max-width: 220px;
+    }
+    .delitos-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .delito-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #fff4f4;
+      border: 1px solid #e8c2bf;
+      color: var(--red);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
     .drawer-backdrop {
       position: fixed;
       inset: 0;
