@@ -480,6 +480,17 @@
     .event time { color: var(--muted); font: 9px "DM Mono", monospace; }
     .event strong { display: block; margin: 4px 0; font-size: 12px; }
     .event p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .timeline-container { position: relative; margin-top: 16px; padding: 20px 0; }
+    .timeline-track { position: relative; height: 4px; background: var(--line); border-radius: 2px; margin: 0 10px; }
+    .timeline-year { position: absolute; top: -20px; font: 500 9px "DM Mono", monospace; color: var(--muted); transform: translateX(-50%); }
+    .timeline-event { position: absolute; top: -5px; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 1px var(--line); cursor: pointer; transform: translateX(-50%); transition: transform 0.2s; z-index: 2; }
+    .timeline-event:hover { transform: translateX(-50%) scale(1.4); }
+    .timeline-event.convicted { background: #dc3545; }
+    .timeline-event.open { background: #fd7e14; }
+    .timeline-event.closed { background: #6c757d; }
+    .timeline-event.no-date { background: #adb5bd; opacity: 0.6; }
+    .timeline-tooltip { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 12px; border-radius: 6px; font-size: 10px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; max-width: 200px; white-space: normal; }
+    .timeline-event:hover .timeline-tooltip { opacity: 1; }
 
     .tooltip {
       position: fixed;
@@ -1271,7 +1282,21 @@
           <span>Último estado procesal:</span>
           <strong>${escapeHtml(formatProcessState(processState))}</strong>
         </div>
-        <section class="detail-section"><h3>Cronología y fuentes</h3>
+        <section class="detail-section"><h3>📅 Timeline de casos</h3>
+          <div class="timeline-container" id="timelineContainer">
+            ${events.length > 1 ? `
+              <div class="timeline-track"></div>
+              ${events.sort((a,b) => (a.año_inicio || a.año || 9999) - (b.año_inicio || b.año || 9999)).map((e, idx, arr) => {
+                const state = ["absuelto","sobreseido","archivado"].includes(String(e.estado_actual||"").toLowerCase()) ? "closed" : ["en_revisión","investigado","formalizado"].includes(String(e.estado_actual||"").toLowerCase()) ? "open" : String(e.estado_actual||"").toLowerCase() === "condenado" ? "convicted" : "no-date";
+                const year = e.fecha_inicio || e.año || "—";
+                const title = e.caso_nombre || "Caso sin nombre";
+                const pos = arr.length > 1 ? (idx / (arr.length - 1)) * 90 + 5 : 50;
+                return `<div class="timeline-event ${state}" style="left: ${pos}%" title="${escapeHtml(title)}"><span class="timeline-tooltip">${escapeHtml(title)} · ${escapeHtml(String(year))}</span></div>`;
+              }).join("")}
+            ` : `<div class="empty">No hay casos suficientes para mostrar timeline.</div>`}
+          </div>
+        </section>
+        <section class="detail-section"><h3>Cronología detallada</h3>
           ${events.length?events.map(e=>{const processState=["absuelto","sobreseido","archivado"].includes(String(e.estado_actual||"").toLowerCase())?"cerrado_sin_condena":["en_revisión","investigado","formalizado"].includes(String(e.estado_actual||"").toLowerCase())?"abierto":String(e.estado_actual||"").toLowerCase()==="condenado"?"condenado":"sin_estado";const badgeClass=processState==="condenado"?"convicted":processState==="cerrado_sin_condena"?"closed":"open";return `<article class="event"><time>${escapeHtml(e.fecha_inicio||"Fecha no informada")}</time><strong>${escapeHtml(e.caso_nombre||"Antecedente")}</strong><p>${escapeHtml(e.resumen||"Sin resumen.")}</p><p><b>Estado:</b> ${escapeHtml(e.estado_actual||"no informado")} · <b>Fuente:</b> ${escapeHtml(e.fuente||"no informada")}</p><div class="state-badge ${badgeClass}"><span>Lectura metodológica:</span><strong>${escapeHtml(formatProcessState(processState))}</strong></div></article>`;}).join(""):`<div class="empty">No existen antecedentes asociados en la base actual.</div>`}
         </section>
         <section class="detail-section"><h3>Noticias relacionadas</h3>
