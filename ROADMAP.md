@@ -1,130 +1,68 @@
-# Registro de Vándalos — Roadmap
+# Registro de Vándalos de Cuello y Corbata — Roadmap
 
-## Estado actual (2026-09-01)
+Nota: este archivo tuvo contenido de otro proyecto del usuario (Google Places,
+scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
+2026-09-02. El detalle completo de cada fix está en `SPEC.md`.
 
-### Completado
+## Arquitectura (confirmada, no tocar sin razón)
 
-| Tarea | Fecha |
-|---|---|
-| Frontend Next.js básico | 2026-08-26 |
-| Frontend profesional UX/UI | 2026-08-26 |
-| Backend FastAPI (endpoints) | 2026-08-26 |
-| Worker Google Places | 2026-08-26 |
-| Tabla `scraping_jobs` en Neon | 2026-08-26 |
-| Tabla `comunas_chile` (347 comunas) | 2026-08-28 |
-| API endpoints funcionales | 2026-08-26 |
-| Worker loop con `FOR UPDATE SKIP LOCKED` | 2026-08-26 |
-| Extracción de emails desde webs | 2026-08-26 |
-| Deduplicación de resultados | 2026-08-26 |
-| Generación de CSV | 2026-08-26 |
-| Bucket R2 creado | 2026-08-27 |
-| Token R2 configurado | 2026-08-27 |
-| Backend corriendo en systemd | 2026-08-27 |
-| Worker corriendo en systemd | 2026-08-27 |
-| Token eliminado del historial de git | 2026-08-28 |
-| Repo GitHub limpio (sin secretos) | 2026-08-28 |
-| Cloudflare Tunnel creado | 2026-08-28 |
-| Registro DNS `api.mapata.cl` | 2026-08-28 |
-| Backend accesible vía tunnel | 2026-08-28 |
-| Google Places API Key configurada | 2026-08-28 |
-| Worker procesando jobs | 2026-08-28 |
-| DNS de DonWeb apuntando a Cloudflare | 2026-08-28 |
-| Auditoría de seguridad backend | 2026-08-28 |
-| Rate limiting + headers de seguridad | 2026-08-28 |
-| Frontend deployado en Cloudflare Pages | 2026-08-28 |
-| **Worker v5.0 — Mejoras de conciliación y rendimiento** | 2026-08-31 |
-| **Frontend v2 con filtros y diseño moderno** | 2026-09-01 |
-| **Backend v3 con caché, paginación y FK** | 2026-09-01 |
-| **Columna partido en Neon DB** | 2026-09-01 |
-| **Índices pg_trgm para búsquedas** | 2026-09-01 |
-| **Noticias con menciones** | 2026-09-01 |
-| **Relaciones por partido** | 2026-09-01 |
+- Backend FastAPI en servidor propio, puerto 8006.
+- Expuesto vía Cloudflare Tunnel en `api.registrodevandalos.likay.cl`.
+- Frontend estático (`frontend/index.html`) en Cloudflare Pages, sin workers ni middleware intermedios.
+- Base de datos: Neon (Postgres).
 
-### Mejoras del Worker v5.0
+## Completado
 
-| Mejora | Estado |
-|---|---|
-| 1. ThreadPoolExecutor con lock para DDG (thread-safe) | ✅ |
-| 2. Checkpointing incremental por zona (resume tras caída) | ✅ |
-| 3. Pool de conexiones + reconexión automática Neon | ✅ |
-| 4. Dedup en SQL (memoria acotada) | ✅ |
-| 5. Errores informativos en DB (traceback) | ✅ |
-| 6. Graceful shutdown con signal handling | ✅ |
-| 7. Upload real a R2 (S3-compatible) | ✅ |
-| 8. Config validation al inicio (fail-fast) | ✅ |
-| 9. Health check endpoint | ✅ |
-| 10. Circuit breaker para Places API | ✅ |
-| 11. Enriquecimiento paralelizado (3 workers) | ✅ |
-| 12. Batch writes (cada 50 zonas) | ✅ |
-| 13. Límite de jobs concurrentes (2) | ✅ |
-| 14. Alertas Telegram en fallo | ✅ |
-| 15. Stale job detector (5 min) | ✅ |
-
----
-
-## Próximos pasos (pendientes)
-
-### Fase 2: Sistema de Relaciones y Noticias
-
-| Mejora | Descripción | Estado |
+| Área | Qué | Cuándo |
 |---|---|---|
-| **1. Búsqueda por aliases** | Tabla de relaciones: "amigo de", "hermano de", "pareja de", "socio de" para detectar vínculos en búsquedas | ⏳ Pendiente |
-| **2. Scraping de noticias** | Buscar en CIPER, El Mostrador, BioBioChile menciones de políticos | ⏳ Pendiente |
-| **3. Extracción de entidades** | NLP/regex para detectar nombres de políticos en textos de noticias | ⏳ Pendiente |
-| **4. Grafo de relaciones** | Conectar políticos con sus redes (familiares, empresas, socios) en el grafo | ⏳ Pendiente |
+| Backend | N+1 eliminado en listado, grafo y SOM (JOIN único en vez de cientos de queries) | 2026-09-01/02 |
+| Backend | Endpoint de detalle `/api/politicos/{id}` (eventos, familiares, aliases, patrimonio) | 2026-09-01 |
+| Backend | Riesgo heredado: familiares con casos suben el `estado_riesgo` del político aunque él no tenga antecedentes propios | 2026-09-01 |
+| Backend | Buscador por alias (`/api/buscar/alias/`) | 2026-09-01 |
+| Backend | Grafo con familiares como nodos (antes solo leía `relaciones`, vacía) | 2026-09-01 |
+| Backend | Tabla y endpoints de `funcionarios_gobierno` (no electos): listado, detalle, filtro por institución | 2026-09-02 |
+| Backend | 15 partidos políticos reales poblados; FK `casos_corrupcion.politico_id` agregada (15/128 casos migrados, resto por `ILIKE`) | 2026-09-02 |
+| Backend | Tablas `patrimonio`, `pasivos`, `actividades`, `empresas`, `vinculos_empresariales` con datos | 2026-09-02 |
+| Frontend | Mojibake corregido en todo el archivo (varias reincidencias) | 2026-09-01/02 |
+| Frontend | Rutas relativas → `BACKEND_ORIGIN` centralizado con detección de entorno | 2026-09-01/02 |
+| Frontend | Sección "Entorno cercano" en el drawer (familiares + alias + casos de cada uno) | 2026-09-01 |
+| Frontend | Buscador de alias conectado al UI (dropdown de coincidencias) | 2026-09-02 |
+| Frontend | Vista "Funcionarios" con tarjetas y drawer de detalle | 2026-09-02 |
+| Infra | Eliminados 4 archivos de red conflictivos (`_worker.js`, `_middleware.js`, 2× `wrangler.toml`) que apuntaban a 3 dominios/puertos distintos | 2026-09-01 |
+| Infra | `.gitignore`, sin credenciales ni `__pycache__`/`.wrangler` en el repo | 2026-09-01 |
 
-### Detalle de mejoras:
+## Pendiente — corto plazo (alto impacto, bajo esfuerzo)
 
-#### 1. Búsqueda por aliases
-- Crear tabla `politicos_aliases` con: `politico_id`, `alias_tipo` (amigo, hermano, socio, etc.), `alias_nombre`, `fuente_url`
-- Endpoint: `/api/politicos/buscar/alias/{tipo}/{nombre}`
-- Ejemplo: `/api/politicos/buscar/alias/hermano/JuanPerez` → devuelve políticos relacionados
+| # | Qué | Por qué importa | Bloqueante |
+|---|---|---|---|
+| 1 | Poblar `relaciones` con datos reales (hoy 0 filas) | el grafo solo muestra familiares; sin esto no hay vínculos amistad/negocios/político visibles | scraping o carga manual |
+| 2 | Poblar `noticias_menciones` (hoy 0 filas, salvo pruebas sintéticas) | bloquea el timeline de prensa por persona | pipeline de matching nombre↔noticia |
+| 3 | Migrar el resto de `casos_corrupcion` a FK real (113/128 siguen en `NULL`) | el `ILIKE` por nombre es frágil ante homónimos/variaciones de escritura | requiere revisión manual o mejor matching |
+| 4 | Hero explicativo en la portada (qué es, para qué sirve, cómo se usa) | primera impresión — hoy el usuario cae directo a la lista sin contexto | ninguno, es solo frontend |
+| 5 | Sección "Cómo leer esto" / glosario (qué es alerta roja, qué es riesgo heredado) | evita malas interpretaciones, refuerza el disclaimer legal ya existente | ninguno |
 
-#### 2. Scraping de noticias
-- Scrapers de CIPER, El Mostrador, BioBioChile, La Tercera
-- Buscar menciones: "amigo de [político]", "hermano de [político]", "cercano a [político]"
-- Almacenar en tabla `noticias_menciones` con: `noticia_id`, `politico_id`, `tipo_mencion`
+## Pendiente — mediano plazo
 
-#### 3. Extracción de entidades
-- Regex para detectar: "X, hermano de Y", "X, amigo de Y", "X, socio de Y"
-- O usar LLM para extracción de entidades en noticias
-- Vincular menciones con políticos registrados
-
-#### 4. Grafo de relaciones
-- Tabla `relaciones` con: `politico_origen_id`, `politico_destino_id`, `tipo_relacion` (familiar, amistad, negocios, etc.), `fuente_url`
-- Endpoint: `/api/politicos/grafo?incluir_relaciones=true`
-- Visualizar en el frontend: nodos conectados por aristas de colores según tipo
-
----
-
-## En progreso
-
-| Tarea | Estado | Notas |
+| # | Qué | Detalle |
 |---|---|---|
-| Implementar aliases de políticos | ⏳ | En cola |
-| Scraping de noticias con menciones | ⏳ | En cola |
-| Extracción de entidades NLP | ⏳ | En cola |
-| Grafo de relaciones | ⏳ | En cola |
+| 6 | Grafo interactivo real (d3.js o vis-network) en vez del SVG a mano actual | el actual funciona pero es limitado (max ~70 nodos visibles, sin zoom/pan) |
+| 7 | Detectar "conexión no declarada": alias/familiar mencionado en prensa/casos sin fila en `relaciones` | esto es el corazón del objetivo del proyecto — visibilizar a quien "pasa piola" |
+| 8 | Timeline interactivo por año (hoy es lista vertical de eventos en el drawer) | mejor lectura de evolución temporal de un caso |
+| 9 | Índices `pg_trgm` sobre `casos_corrupcion.responsable` y `familiares.nombre_completo` | el `ILIKE '%x%'` no usa índice normal — con más datos esto degrada el rendimiento |
+| 10 | Caché con TTL corto (5-10 min) en `/api/politicos/` | reduce carga a Neon en picos de tráfico, dato no cambia por request |
 
----
+## Pendiente — largo plazo / escala
 
-## Próximos pasos inmediatos
+| # | Qué | Detalle |
+|---|---|---|
+| 11 | Scraping automatizado de prensa (CIPER, El Mostrador, BioBioChile) para alimentar `noticias_menciones` | pipeline recurrente, no una carga puntual |
+| 12 | Alertas (Telegram u otro canal) cuando aparece un familiar/alias nuevo en prensa de corrupción | proactividad — avisar antes de que la conexión se pierda en el ruido |
+| 13 | URLs individuales por político/funcionario (`/perfil/123-nombre`) en vez de todo en un SPA con drawer | mejora indexación SEO y permite compartir un caso puntual |
+| 14 | Modo comparación: seleccionar 2-3 personas y ver sus redes combinadas | pedido explícito en `MEJORAS.md`, no implementado aún |
+| 15 | Mapa de calor (choropleth) de Chile por densidad de casos, en vez de la vista de barras actual | más intuitivo que "Lectura territorial" actual |
 
-1. **Implementar búsqueda por aliases** (tabla + endpoint)
-2. **Agregar scraping de noticias** (CIPER, El Mostrador)
-3. **Crear tabla de relaciones** (familiares, socios, amigos)
-4. **Actualizar grafo** para mostrar relaciones
+## Notas técnicas activas
 
----
-
-## Notas técnicas
-
-- El worker usa `FOR UPDATE SKIP LOCKED` para concurrencia
-- Google Places API tiene límite de 60 resultados por query
-- Se recomienda no exceder 2000 queries por job (costo ~$34 USD)
-- Los CSVs se generan con UTF-8 BOM para compatibilidad con Excel
-- El sistema respeta rate limits de Google (2s entre páginas, 0.1s entre detalles)
-- El backend corre en Python 3.11 (evita problemas con psycopg2 en 3.13)
-- El worker v5.0 incluye: paralelización, checkpointing, circuit breaker, batch writes
-- Health check endpoint: http://localhost:8002/health
-- Alertas Telegram configurables vía `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`
+- El backend abre una conexión Postgres por endpoint sin `try/finally` — si una query falla a mitad de camino, la conexión queda sin cerrar. No es urgente con el tráfico actual, pero conviene envolver en `try/finally` antes de escalar tráfico.
+- `SELECT *` se usa en varios endpoints de `funcionarios_gobierno` — funcional, pero trae columnas sin filtrar; preferible listar columnas explícitas si el schema crece.
+- Regla del proyecto: cada push debe agregar una entrada en `SPEC.md` con el detalle de qué cambió y por qué.
