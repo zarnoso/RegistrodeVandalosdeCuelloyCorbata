@@ -23,11 +23,15 @@ scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
 | Backend | Tabla y endpoints de `funcionarios_gobierno` (no electos): listado, detalle, filtro por institución | 2026-09-02 |
 | Backend | 15 partidos políticos reales poblados; FK `casos_corrupcion.politico_id` agregada (15/128 casos migrados, resto por `ILIKE`) | 2026-09-02 |
 | Backend | Tablas `patrimonio`, `pasivos`, `actividades`, `empresas`, `vinculos_empresariales` con datos | 2026-09-02 |
+| Backend | Migración de 90/128 casos a FK (70%) | 2026-09-02 |
+| Backend | 7,809 relaciones pobladas desde menciones en noticias | 2026-09-02 |
+| Backend | Worker de Noticias v1.2: 6 fuentes funcionando, 135 artículos, 91 con menciones | 2026-09-02 |
 | Frontend | Mojibake corregido en todo el archivo (varias reincidencias) | 2026-09-01/02 |
 | Frontend | Rutas relativas → `BACKEND_ORIGIN` centralizado con detección de entorno | 2026-09-01/02 |
 | Frontend | Sección "Entorno cercano" en el drawer (familiares + alias + casos de cada uno) | 2026-09-01 |
 | Frontend | Buscador de alias conectado al UI (dropdown de coincidencias) | 2026-09-02 |
 | Frontend | Vista "Funcionarios" con tarjetas y drawer de detalle | 2026-09-02 |
+| Frontend | Hero explicativo mejorado + sección "Guía rápida" (glosario de riesgos) | 2026-09-02 |
 | Infra | Eliminados 4 archivos de red conflictivos (`_worker.js`, `_middleware.js`, 2× `wrangler.toml`) que apuntaban a 3 dominios/puertos distintos | 2026-09-01 |
 | Infra | `.gitignore`, sin credenciales ni `__pycache__`/`.wrangler` en el repo | 2026-09-01 |
 | Backend | Scraping automático de 6 fuentes de prensa (`worker_noticias.py`), conectado al detalle de político | 2026-09-03 |
@@ -61,11 +65,12 @@ scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
 
 | # | Qué | Detalle |
 |---|---|---|
-| 11 | Scraping automatizado de prensa (CIPER, El Mostrador, BioBioChile) para alimentar `noticias_menciones` | pipeline recurrente, no una carga puntual |
+| 11 | Scraping automatizado de prensa | ✅ implementado (`worker_noticias.py`, 6 fuentes) — falta punto 16 (programarlo) |
 | 12 | Alertas (Telegram u otro canal) cuando aparece un familiar/alias nuevo en prensa de corrupción | proactividad — avisar antes de que la conexión se pierda en el ruido |
 | 13 | URLs individuales por político/funcionario (`/perfil/123-nombre`) en vez de todo en un SPA con drawer | mejora indexación SEO y permite compartir un caso puntual |
 | 14 | Modo comparación: seleccionar 2-3 personas y ver sus redes combinadas | pedido explícito en `MEJORAS.md`, no implementado aún |
 | 15 | Mapa de calor (choropleth) de Chile por densidad de casos, en vez de la vista de barras actual | más intuitivo que "Lectura territorial" actual |
+| 16 | Sistema de alertas/cron diario para actualizar noticias automáticamente | el worker existe, falta programarlo |
 
 ## Notas técnicas activas
 
