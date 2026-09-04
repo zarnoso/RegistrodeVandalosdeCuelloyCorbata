@@ -60,16 +60,18 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       const hashMatch = window.location.hash.match(/^#perfil\/(\d+)/);
       if (hashMatch) openProfile(parseInt(hashMatch[1]));
       if (apiAvailable) {
-        const [graphResult, somResult, funcResult] = await Promise.allSettled([
+        const [graphResult, somResult, funcResult, casesResult] = await Promise.allSettled([
           fetch(`${BACKEND_ORIGIN}/api/politicos/grafo?limit=250`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
           fetch(`${BACKEND_ORIGIN}/api/politicos/analitica/som?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
-          fetch(`${BACKEND_ORIGIN}/api/funcionarios/?limit=100`).then(r => r.ok ? r.json() : Promise.reject(r.status))
+          fetch(`${BACKEND_ORIGIN}/api/funcionarios/?limit=100`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
+          fetch(`${API_CASES}?limit=500`).then(r => r.ok ? r.json() : Promise.reject(r.status))
         ]);
         if (graphResult.status === "fulfilled") graphPayload = graphResult.value;
         if (somResult.status === "fulfilled") somPayload = somResult.value;
         if (funcResult.status === "fulfilled") {
           funcionarios = funcResult.value.data || [];
         }
+        if (casesResult.status === "fulfilled") casesData = casesResult.value || [];
       }
       updateMetrics();
       applyFilters();
@@ -90,6 +92,10 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
           && (!selectedRegion || p.region === selectedRegion)
           && (activeFilter === "all" || riskGroup(p) === activeFilter);
       });
+      if (currentView === "cases") {
+        renderCasesIntoResults();
+        return;
+      }
       renderList();
       renderViz();
       searchAliases(q);
@@ -155,6 +161,48 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       if (currentView === "territory") renderTerritory(svg);
       if (currentView === "network") renderNetwork(svg);
       if (currentView === "som") renderSom(svg);
+    }
+
+    function renderCasesIntoResults() {
+      const list = $("#personList");
+      const q = $("#searchInput").value.trim().toLowerCase();
+      const qf = caseFilters.estado_procesal;
+      let rows = casesData.slice();
+      if (q) rows = rows.filter(c => `${c.nombre||""} ${c.responsable||""} ${c.delitos||""} ${c.sector||""}`.toLowerCase().includes(q));
+      if (qf !== "all") rows = rows.filter(c => String(c.estado||"").toLowerCase() === qf);
+      $("#resultsCount").textContent = `${rows.length} caso(s)`;
+      list.innerHTML = rows.length ? rows.slice(0, 200).map(c => `
+        <button class="person person-caso" data-caso="${escapeHtml(c.id)}">
+          <span class="avatar" style="background:#315aa8">${escapeHtml(initials(c.nombre||"Caso"))}</span>
+          <span>
+            <span class="person-name">${escapeHtml(c.nombre||"Caso sin nombre")}</span>
+            <span class="person-meta">${escapeHtml(c.responsable||"Responsable no informado")}</span>
+            <span class="person-meta">${escapeHtml(c.delitos||"")}${c.monto?` · Monto: ${escapeHtml(c.monto)}`:""}${c.año?` · ${escapeHtml(c.año)}`:""}</span>
+          </span>
+          <span class="risk ${["activo","en investigación","formalizado","imputado","prisión preventiva","querella"].includes(String(c.estado||"").trim().toLowerCase())?"amber":""}" title="${escapeHtml(c.estado||"sin estado")}"></span>
+        </button>`).join("") : `<div class="empty">No hay casos con estos filtros.</div>`;
+      document.querySelectorAll("[data-caso]").forEach(btn =>
+        btn.addEventListener("click", () => {
+          const c = casesData.find(x => String(x.id) === btn.dataset.caso);
+          if (!c) return;
+          $("#drawerContent").innerHTML = `
+            <header class="profile-head">
+              <span class="eyebrow">Caso ${escapeHtml(c.id)}</span>
+              <h2 id="profileName">${escapeHtml(c.nombre||"Caso sin nombre")}</h2>
+              <p>${escapeHtml(c.sector||"Sector no informado")} · ${escapeHtml(c.año||"Año no informado")}</p>
+            </header>
+            <div class="disclaimer">Registro público de un caso documentado. La mención de una persona como responsable no implica condena ni responsabilidad definitiva.</div>
+            <section class="detail-section"><h3>Datos del caso</h3><div class="detail-grid">
+              <div class="detail-stat"><b>${escapeHtml(c.estado||"—")}</b><span>Estado</span></div>
+              <div class="detail-stat"><b>${escapeHtml(c.responsable||"—")}</b><span>Responsable(s)</span></div>
+              <div class="detail-stat"><b>${escapeHtml(c.monto||"—")}</b><span>Monto</span></div>
+              ${c.fuente_url?`<div class="detail-stat"><b><a href="${escapeHtml(c.fuente_url)}" target="_blank" style="color:var(--teal)">Fuente</a></b><span>Documento</span></div>`:""}
+            </div></section>
+            ${c.delitos?`<section class="detail-section"><h3>Delitos imputados</h3><div class="delitos-tags">${c.delitos.split(",").map(d=>`<span class="delito-tag">${escapeHtml(d.trim())}</span>`).join("")}</div></section>`:""}
+            <p style="color:var(--muted);font-size:11px;margin-top:14px">Código de caso ${escapeHtml(c.id)} · Fuente base de corrupción Chile compilada públicamente.</p>`;
+          $("#drawerBackdrop").classList.add("open");
+          $("#drawerClose").focus();
+        }));
     }
 
     function renderFuncionariosList() {
@@ -701,7 +749,8 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       territory:{eyebrow:"Lectura territorial",title:'El poder deja una <em>trama.</em>',copy:"Explora autoridades, antecedentes públicos y conexiones declaradas sin perder de vista el territorio ni el estado de cada fuente.",note:"Selecciona una región de la columna chilena. El tamaño de cada marca resume la cantidad de autoridades registradas, no su nivel de riesgo.",panel:"Autoridades por territorio",panelEye:"Chile longitudinal",hint:"Pasa el cursor sobre una región y selecciónala para filtrar la lista."},
       network:{eyebrow:"Relaciones declaradas",title:'Ningún registro existe <em>aislado.</em>',copy:"Observa cómo autoridades, empresas, familiares y antecedentes comparten una red de vínculos explícitos y verificables.",note:"Cada línea representa una relación registrada. Su proximidad visual no implica coordinación, asociación ilícita ni responsabilidad compartida.",panel:"Grafo de relaciones",panelEye:"Vínculos explícitos",hint:"Selecciona un nodo para abrir su ficha. El grosor resume vínculos registrados."},
       som:{eyebrow:"Exploración estadística",title:'Parecidos no significa <em>relacionados.</em>',copy:"El mapa autoorganizado agrupa perfiles con variables similares para descubrir patrones que una lista tradicional no muestra.",note:"El SOM es exploratorio: la cercanía indica similitud matemática entre atributos, no parentesco, colaboración ni culpabilidad.",panel:"Mapa de similitudes",panelEye:"SOM exploratorio",hint:"Cada celda agrupa perfiles parecidos. Selecciona un punto para entender sus datos originales."},
-      funcionarios:{eyebrow:"Funcionarios de Gobierno",title:'Quién <em>administra</em> el Estado',copy:"Identifica a personas que trabajan para el gobierno como funcionarios públicos, separadas de políticos electos.",note:"Los funcionarios son designados, no electos. Pueden tener vínculos con políticos si la fuente lo documenta.",panel:"Funcionarios registrados",panelEye:"Designación pública",hint:"Usa el filtro para distinguir entre políticos electos y funcionarios de gobierno."}
+      funcionarios:{eyebrow:"Funcionarios de Gobierno",title:'Quién <em>administra</em> el Estado',copy:"Identifica a personas que trabajan para el gobierno como funcionarios públicos, separadas de políticos electos.",note:"Los funcionarios son designados, no electos. Pueden tener vínculos con políticos si la fuente lo documenta.",panel:"Funcionarios registrados",panelEye:"Designación pública",hint:"Usa el filtro para distinguir entre políticos electos y funcionarios de gobierno."},
+      cases:{eyebrow:"Casos documentados",title:'Casos de <em>corrupción.</em>',copy:"Explora los casos documentados y sus responsables, independientemente de ser o no autoridad electa.",note:"Cada caso es un registro público. La mención de un responsable no implica condena ni responsabilidad definitiva.",panel:"Casos de corrupción",panelEye:"Compilación pública",hint:"Busca por nombre, responsable o delito. Selecciona un caso para abrir su ficha."}
     };
 
     document.querySelectorAll(".nav button").forEach(btn=>btn.addEventListener("click",()=>{
@@ -711,6 +760,8 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       $("#viewEyebrow").textContent=v.eyebrow; $("#viewTitle").innerHTML=v.title; $("#viewCopy").textContent=v.copy;
       $("#viewNote").innerHTML=`<strong>Cómo leer esta vista</strong>${escapeHtml(v.note)}`;
       $("#panelTitle").textContent=v.panel; $("#panelEyebrow").textContent=v.panelEye; $("#vizHint").textContent=v.hint;
+      const vizPanel = $("#viz");
+      if (currentView === "cases") { vizPanel.hidden = true; } else if (vizPanel.hidden) { vizPanel.hidden = false; }
       applyFilters();
     }));
     document.querySelectorAll(".chip").forEach(btn=>btn.addEventListener("click",()=>{

@@ -104,9 +104,13 @@ def listar_politicos(limit: int = 500, skip: int = 0):
                 del.delitos_resumen
             FROM politicos p
             LEFT JOIN (
-                SELECT politico_id, COUNT(*) AS casos_count
+                SELECT p2.id AS politico_id, COUNT(*) AS casos_count
                 FROM casos_corrupcion
-                GROUP BY politico_id
+                JOIN politicos p2 ON (
+                    casos_corrupcion.responsable ILIKE '%%' || p2.nombre_completo || '%%'
+                    OR casos_corrupcion.responsable ILIKE '%%' || split_part(p2.nombre_completo, ' ', 1) || ' ' || split_part(p2.nombre_completo, ' ', 2) || '%%'
+                )
+                GROUP BY p2.id
             ) cc ON cc.politico_id = p.id
             LEFT JOIN (
                 SELECT politico_id, COUNT(*) AS fam_count
@@ -125,10 +129,14 @@ def listar_politicos(limit: int = 500, skip: int = 0):
                 GROUP BY f.politico_id
             ) fam_casos ON fam_casos.politico_id = p.id
             LEFT JOIN (
-                SELECT politico_id, STRING_AGG(DISTINCT delitos, ' · ' ORDER BY delitos) AS delitos_resumen
+                SELECT p3.id AS politico_id, STRING_AGG(DISTINCT casos_corrupcion.delitos, ' · ' ORDER BY casos_corrupcion.delitos) AS delitos_resumen
                 FROM casos_corrupcion
-                WHERE delitos IS NOT NULL AND delitos != ''
-                GROUP BY politico_id
+                JOIN politicos p3 ON (
+                    casos_corrupcion.responsable ILIKE '%%' || p3.nombre_completo || '%%'
+                    OR casos_corrupcion.responsable ILIKE '%%' || split_part(p3.nombre_completo, ' ', 1) || ' ' || split_part(p3.nombre_completo, ' ', 2) || '%%'
+                )
+                WHERE casos_corrupcion.delitos IS NOT NULL AND casos_corrupcion.delitos != ''
+                GROUP BY p3.id
             ) del ON del.politico_id = p.id
             ORDER BY p.nombre_completo
             LIMIT %s OFFSET %s
@@ -196,8 +204,11 @@ def grafo(limit: int = 250):
         SELECT p.id, p.nombre_completo, p.tipo, p.region,
                COALESCE(cc.casos_count, 0) AS casos_count
         FROM politicos p
-        LEFT JOIN (SELECT responsable, COUNT(*) AS casos_count FROM casos_corrupcion GROUP BY responsable) cc
-               ON p.nombre_completo ILIKE '%%' || cc.responsable || '%%'
+        LEFT JOIN (
+            SELECT politico_id, COUNT(*) AS casos_count
+            FROM casos_corrupcion
+            GROUP BY politico_id
+        ) cc ON cc.politico_id = p.id
         LIMIT %s
     """, (limit,))
     politico_rows = cur.fetchall()
@@ -227,6 +238,65 @@ def grafo(limit: int = 250):
     cache_set("grafo", result)
     return result
 
+# =============================================================================
+# SOM - Self-Organizing Map (Mapa de Similitudes)
+# =============================================================================
+@app.get("/api/politicos/analitica/som")
+def som(limit: int = 500):
+    cached = cache_get("som")
+    if cached is not None:
+        return cached
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT p.id, p.nombre_completo, p.tipo, p.region, p.partido,
+                   COALESCE(cc.casos_count, 0) AS casos_count,
+                   COALESCE(fam.fam_count, 0) AS fam_count,
+                   COALESCE(fam_casos.casos_familiares, 0) AS casos_familiares
+            FROM politicos p
+            LEFT JOIN (
+                SELECT politico_id, COUNT(*) AS casos_count
+                FROM casos_corrupcion
+                GROUP BY politico_id
+            ) cc ON cc.politico_id = p.id
+            LEFT JOIN (
+                SELECT politico_id, COUNT(*) AS fam_count
+                FROM familiares
+                GROUP BY politico_id
+            ) fam ON fam.politico_id = p.id
+            LEFT JOIN (
+                SELECT f.politico_id, COUNT(*) AS casos_familiares
+                FROM familiares f
+                JOIN casos_corrupcion cc2 ON cc2.politico_id = f.politico_id
+                GROUP BY f.politico_id
+            ) fam_casos ON fam_casos.politico_id = p.id
+            ORDER BY p.nombre_completo
+            LIMIT %s
+        """, (limit,))
+        rows = cur.fetchall()
+        resultado = []
+        for r in rows:
+            casos_count = r['casos_count']
+            casos_familiares = r['casos_familiares']
+            estado_riesgo = calcular_riesgo_heredado(casos_count, casos_familiares)
+            resultado.append({
+                "id": r['id'], "nombre_completo": r['nombre_completo'],
+                "tipo": r['tipo'], "region": r['region'], "partido": r['partido'],
+                "estado_riesgo": estado_riesgo, "num_eventos": casos_count,
+                "num_familiares": r['fam_count'], "casos_familiares": casos_familiares,
+            })
+    finally:
+        cur.close()
+        conn.close()
+    cache_set("som", resultado)
+    return resultado
+
+# Ruta duplicada para compatibilidad con frontend anterior
+@app.get("/api/som/")
+def som_legacy():
+    return som()
+
 @app.get("/api/politicos/{politico_id}")
 def detalle_politico(politico_id: int):
     conn = get_db()
@@ -238,8 +308,8 @@ def detalle_politico(politico_id: int):
             raise HTTPException(status_code=404, detail="Político no encontrado")
         cur.execute("""
             SELECT nombre as caso_nombre, año_inicio as fecha_inicio, estado, sentencia as resumen, fuente_url, delitos, conclusión as conclusion
-            FROM casos_corrupcion WHERE politico_id = %s OR responsable ILIKE %s ORDER BY año_inicio DESC NULLS LAST
-        """, (politico_id, f"%{p['nombre_completo']}%"))
+            FROM casos_corrupcion WHERE politico_id = %s OR responsable ILIKE %s OR responsable ILIKE %s ORDER BY año_inicio DESC NULLS LAST
+        """, (politico_id, f"%{p['nombre_completo']}%", f"%{p['nombre_completo'].split()[0]} {p['nombre_completo'].split()[1] if len(p['nombre_completo'].split())>1 else ''}%".strip()))
         eventos = [dict(row) for row in cur.fetchall()]
         cur.execute("SELECT * FROM familiares WHERE politico_id = %s", (politico_id,))
         familiares = [dict(row) for row in cur.fetchall()]
