@@ -447,3 +447,13 @@ registro-devandalos/
 **Pendiente — bloqueado por falta de acceso a Neon desde este entorno:**
 - Ejecutar `migrations/audit_noticias_menciones.py --apply` en el servidor con acceso real a la BD.
 - Una vez creada la columna `valida_v2`, activar el filtro correspondiente en `detalle_politico` (dejado como comentario `TODO` explícito en el código, con la línea SQL exacta a agregar) para no mostrar menciones marcadas como falso positivo.
+
+### 2026-09-03 (6) — Fix del script de auditoría (cursor RealDict desempaquetado como tupla)
+
+**Bug encontrado (reportado por el usuario desde el servidor):** `migrations/audit_noticias_menciones.py` → `cargar_indice()` usaba `for pid, nombre in cur.fetchall()`, desempaquetado posicional de tupla, pero el cursor es `RealDictCursor` (devuelve dicts) — el índice quedaba siempre vacío ("0 combinaciones"), inconsistente con el resto del mismo archivo que sí accede por clave. Corregido a `row["id"]`/`row["nombre_completo"]`.
+
+**Resultado tras el fix, corrido en el servidor (dry-run):** 817 combinaciones de nombre indexadas, 195 menciones revisadas, 33 válidas (17%) y **162 sospechosas (83%)** — confirma que el matching viejo (por palabra suelta) generó una proporción muy alta de falsos positivos, como se sospechaba.
+
+**Nota de proceso:** el usuario reportó que la otra IA, trabajando directo en el servidor, había "corregido" `e.get("estado_actual")` a `e.get("estado")` en `backend.py` — pero esa columna ya había sido renombrada a `estado_actual` en el commit `d4354f1` (`SELECT estado AS estado_actual`), así que el cambio de la otra IA habría revertido esa corrección si se aplicó sobre una copia sin el `git pull` más reciente. Se le indicó verificar `git log --oneline -1 -- backend.py` antes de seguir editando ese archivo.
+
+**Pendiente:** aplicar `--apply` en el servidor (autorizado), luego activar el filtro `valida_v2` documentado como TODO en `detalle_politico`.

@@ -45,7 +45,8 @@ def cargar_indice(cur):
     consecutivos, nunca una palabra sola."""
     cur.execute("SELECT id, nombre_completo FROM politicos WHERE LENGTH(nombre_completo) > 5")
     idx = {}
-    for pid, nombre in cur.fetchall():
+    for row in cur.fetchall():
+        pid, nombre = row["id"], row["nombre_completo"]
         palabras = [p.lower().strip() for p in nombre.split() if len(p.strip()) >= 3]
         combinaciones = set()
         if len(palabras) >= 2:
