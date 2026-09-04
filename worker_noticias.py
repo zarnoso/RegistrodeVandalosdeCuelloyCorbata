@@ -156,15 +156,24 @@ def guardar_mencion(h, pid, ctx):
     if len(BUFFER_MENCIONES) >= BATCH_SIZE: _flush()
 
 def cargar_indice():
+    """Índice por combinaciones de 2+ palabras del nombre (ej. 'sebastián piñera',
+    'piñera echenique'), nunca por una sola palabra — un apellido común
+    (González, Muñoz, Silva...) mencionado solo generaría falsos positivos
+    masivos sin relación real con la persona."""
     conn = get_conn(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("SELECT id, nombre_completo FROM politicos WHERE LENGTH(nombre_completo) > 5")
     rows = cur.fetchall(); cur.close(); put_conn(conn)
     idx = {}
     for r in rows:
-        for palabra in r["nombre_completo"].split():
-            p = palabra.lower().strip()
-            if len(p) < 3: continue
-            idx.setdefault(p, set()).add((r["id"], r["nombre_completo"]))
+        palabras = [p.lower().strip() for p in r["nombre_completo"].split() if len(p.strip()) >= 3]
+        # Nombre completo entero, y todos los bigramas consecutivos dentro de él
+        combinaciones = set()
+        if len(palabras) >= 2:
+            combinaciones.add(" ".join(palabras))
+            for i in range(len(palabras) - 1):
+                combinaciones.add(f"{palabras[i]} {palabras[i+1]}")
+        for combo in combinaciones:
+            idx.setdefault(combo, set()).add((r["id"], r["nombre_completo"]))
     return idx
 
 def normalizar(s):
@@ -173,11 +182,14 @@ def normalizar(s):
     return re.sub(r"\s+", " ", s)
 
 def detectar(texto, indice):
+    """Solo matchea n-gramas de 2+ palabras — nunca una palabra sola,
+    para evitar que un apellido común genere menciones falsas."""
     if not texto: return []
     txt = normalizar(texto)
     palabras = txt.split()
+    max_lng = max((len(k.split()) for k in indice), default=2)
     matches, vistos = [], set()
-    for lng in [3, 2, 1]:
+    for lng in range(max_lng, 1, -1):
         for i in range(len(palabras) - lng + 1):
             ng = " ".join(palabras[i:i+lng])
             if ng in indice:

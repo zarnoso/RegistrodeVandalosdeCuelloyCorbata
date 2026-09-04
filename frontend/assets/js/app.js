@@ -635,13 +635,13 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
     function formatProcessState(value) {
       switch (String(value || "").toLowerCase()) {
         case "abierto":
-          return "Abierto";
+          return "Investigación en curso";
         case "cerrado_sin_condena":
           return "Cerrado sin condena";
         case "condenado":
           return "Condenado";
         case "sin_estado":
-          return "Sin estado";
+          return "Sin antecedentes";
         default:
           return "Otro";
       }

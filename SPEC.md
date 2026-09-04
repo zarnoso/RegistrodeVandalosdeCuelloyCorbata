@@ -408,3 +408,22 @@ registro-devandalos/
 - `setup.sh`: no validaba la existencia de `.env` antes de instalar systemd (fallaría silenciosamente al arrancar el timer sin `DATABASE_URL`); mencionaba `mapata-full.service`, de otro proyecto del usuario. Ambos corregidos.
 
 **Pendiente reforzado:** rotar la contraseña de Neon es ahora más urgente — estuvo expuesta en **dos** archivos distintos del repo público, no solo uno.
+
+### 2026-09-03 (4) — Terminología más directa, fix estado_actual, matching de noticias más estricto
+
+**Contexto:** el usuario pidió que el frontend muestre claramente condenas y casos reales, y señaló que términos como "riesgo propio"/"riesgo heredado"/"vínculo mediático" no son suficientemente directos para el objetivo del sitio (que la gente vea rápido "en qué anda metido" un político).
+
+**Bug crítico encontrado y corregido:** `detalle_politico` enviaba el estado del caso como `estado` (columna real de la BD), pero el frontend en todas partes (lista, drawer, timeline, tooltips) leía `e.estado_actual` — un nombre de campo distinto. Como resultado, **ningún caso mostraba su estado real** (condenado, en investigación, etc.); todo caía al fallback "sin estado". Corregido: el `SELECT` ahora renombra `estado AS estado_actual` y `fuente_url AS fuente` (este último también esperado con otro nombre por el frontend).
+
+**Terminología revisada (`frontend/index.html`, glosario; `frontend/assets/js/app.js`, `formatProcessState`):**
+- "Riesgo propio" → "Con casos propios".
+- "Riesgo heredado" → "Entorno comprometido".
+- "Vínculo mediático" → "Mencionado junto a otro caso" (con la aclaración de que no confirma un vínculo real).
+- "Abierto" → "Investigación en curso".
+- "Sin estado" → "Sin antecedentes".
+
+**Matching de noticias corregido (`worker_noticias.py`):** el índice de nombres indexaba cada palabra del nombre por separado (incluyendo apellidos comunes como "González", "Muñoz", "Silva"), y `detectar()` permitía coincidencias de una sola palabra (`lng=1`). Esto generaba riesgo real de falsos positivos: una noticia que mencionara un apellido común, sin relación con el político real, podía registrarse como mención. Corregido: el índice ahora solo indexa el nombre completo y sus bigramas consecutivos (mínimo 2 palabras), y `detectar()` ya no prueba n-gramas de 1 palabra.
+
+**Pendiente:**
+- Las 3,670 filas ya existentes en `noticias_menciones` fueron generadas con la lógica vieja (matching por palabra suelta) — pueden incluir falsos positivos. Conviene una limpieza/reproceso con la lógica nueva antes de confiar plenamente en esos datos.
+- El filtro `caseFilters.estado_procesal` existe en el JS pero no tiene ningún `<select>` en el HTML que lo controle — queda fijo en "all" siempre. Falta agregar el control de UI.

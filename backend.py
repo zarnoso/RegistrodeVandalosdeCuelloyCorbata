@@ -307,7 +307,7 @@ def detalle_politico(politico_id: int):
         if not p:
             raise HTTPException(status_code=404, detail="Político no encontrado")
         cur.execute("""
-            SELECT nombre as caso_nombre, año_inicio as fecha_inicio, estado, sentencia as resumen, fuente_url, delitos, conclusión as conclusion
+            SELECT nombre as caso_nombre, año_inicio as fecha_inicio, estado as estado_actual, sentencia as resumen, fuente_url as fuente, delitos, conclusión as conclusion
             FROM casos_corrupcion WHERE politico_id = %s OR responsable ILIKE %s OR responsable ILIKE %s ORDER BY año_inicio DESC NULLS LAST
         """, (politico_id, f"%{p['nombre_completo']}%", f"%{p['nombre_completo'].split()[0]} {p['nombre_completo'].split()[1] if len(p['nombre_completo'].split())>1 else ''}%".strip()))
         eventos = [dict(row) for row in cur.fetchall()]
