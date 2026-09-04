@@ -169,9 +169,11 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       const qf = caseFilters.estado_procesal;
       let rows = casesData.slice();
       if (q) rows = rows.filter(c => `${c.nombre||""} ${c.responsable||""} ${c.delitos||""} ${c.sector||""}`.toLowerCase().includes(q));
-      if (qf !== "all") rows = rows.filter(c => String(c.estado||"").toLowerCase() === qf);
+      if (qf !== "all") rows = rows.filter(c => (c.estado_normalizado || "sin_estado") === qf);
       $("#resultsCount").textContent = `${rows.length} caso(s)`;
-      list.innerHTML = rows.length ? rows.slice(0, 200).map(c => `
+      list.innerHTML = rows.length ? rows.slice(0, 200).map(c => {
+        const sev = c.estado_normalizado === "condenado" ? "red" : c.estado_normalizado === "abierto" ? "amber" : "";
+        return `
         <button class="person person-caso" data-caso="${escapeHtml(c.id)}">
           <span class="avatar" style="background:#315aa8">${escapeHtml(initials(c.nombre||"Caso"))}</span>
           <span>
@@ -179,8 +181,9 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
             <span class="person-meta">${escapeHtml(c.responsable||"Responsable no informado")}</span>
             <span class="person-meta">${escapeHtml(c.delitos||"")}${c.monto?` · Monto: ${escapeHtml(c.monto)}`:""}${c.año?` · ${escapeHtml(c.año)}`:""}</span>
           </span>
-          <span class="risk ${["activo","en investigación","formalizado","imputado","prisión preventiva","querella"].includes(String(c.estado||"").trim().toLowerCase())?"amber":""}" title="${escapeHtml(c.estado||"sin estado")}"></span>
-        </button>`).join("") : `<div class="empty">No hay casos con estos filtros.</div>`;
+          <span class="risk ${sev}" title="${escapeHtml(c.estado||"Sin estado registrado")}"></span>
+        </button>`;
+      }).join("") : `<div class="empty">No hay casos con estos filtros.</div>`;
       document.querySelectorAll("[data-caso]").forEach(btn =>
         btn.addEventListener("click", () => {
           const c = casesData.find(x => String(x.id) === btn.dataset.caso);
@@ -683,7 +686,11 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       if(!p)return;
       const events=p.eventos||[];
       const companyCount=(p.patrimonios||[]).reduce((n,x)=>n+(x.empresas||[]).length,0)||p.num_empresas||0;
-      const processState = p.estado_procesal_ultimo_evento || (events[0]?.estado_actual ? "abierto" : "sin_estado");
+      const _severidad = { condenado: 3, abierto: 2, cerrado_sin_condena: 1, sin_estado: 0 };
+      const processState = events.reduce((peor, e) => {
+        const s = e.estado_normalizado || "sin_estado";
+        return (_severidad[s] ?? 0) > (_severidad[peor] ?? 0) ? s : peor;
+      }, "sin_estado");
       const stateClass = processState === "condenado" ? "convicted" : processState === "cerrado_sin_condena" ? "closed" : "open";
       $("#drawerContent").innerHTML=`
         <header class="profile-head">
@@ -712,9 +719,9 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
             ${events.length > 1 ? `
               <div class="timeline-track"></div>
               ${events.sort((a,b) => (parseInt(a.fecha_inicio) || 9999) - (parseInt(b.fecha_inicio) || 9999)).map((e, idx, arr) => {
-                const state = ["absuelto","sobreseido","archivado"].includes(String(e.estado_actual||"").toLowerCase()) ? "closed" : ["en_revisión","investigado","formalizado"].includes(String(e.estado_actual||"").toLowerCase()) ? "open" : String(e.estado_actual||"").toLowerCase() === "condenado" ? "convicted" : "no-date";
-                const year = e.fecha_inicio || "—";
+                const state = e.estado_normalizado === "cerrado_sin_condena" ? "closed" : e.estado_normalizado === "abierto" ? "open" : e.estado_normalizado === "condenado" ? "convicted" : "no-date";
                 const title = e.caso_nombre || "Caso sin nombre";
+                const year = e.fecha_inicio || "—";
                 const pos = arr.length > 1 ? (idx / (arr.length - 1)) * 90 + 5 : 50;
                 return `<div class="timeline-event ${state}" style="left: ${pos}%" title="${escapeHtml(title)}"><span class="timeline-tooltip">${escapeHtml(title)} · ${escapeHtml(String(year))}</span></div>`;
               }).join("")}
@@ -722,7 +729,11 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
           </div>
         </section>
         <section class="detail-section"><h3>Cronología detallada</h3>
-          ${events.length?events.map(e=>{const processState=["absuelto","sobreseido","archivado"].includes(String(e.estado_actual||"").toLowerCase())?"cerrado_sin_condena":["en_revisión","investigado","formalizado"].includes(String(e.estado_actual||"").toLowerCase())?"abierto":String(e.estado_actual||"").toLowerCase()==="condenado"?"condenado":"sin_estado";const badgeClass=processState==="condenado"?"convicted":processState==="cerrado_sin_condena"?"closed":"open";return `<article class="event"><time>${escapeHtml(e.fecha_inicio||"Fecha no informada")}</time><strong>${escapeHtml(e.caso_nombre||"Antecedente")}</strong>${e.delitos?`<p>Delitos: ${escapeHtml(e.delitos)}</p>`:""}<p>${escapeHtml(e.resumen||"Sin resumen.")}</p>${e.conclusion?`<p><b>Conclusión:</b> ${escapeHtml(e.conclusion)}</p>`:""}<p><b>Estado:</b> ${escapeHtml(e.estado_actual||"no informado")} · <b>Fuente:</b> ${escapeHtml(e.fuente||"no informada")}</p><div class="state-badge ${badgeClass}"><span>Lectura metodológica:</span><strong>${escapeHtml(formatProcessState(processState))}</strong></div></article>`;}).join(""):`<div class="empty">No existen antecedentes asociados en la base actual.</div>`}
+          ${events.length?events.map(e=>{
+            const processState = e.estado_normalizado || "sin_estado";
+            const badgeClass = processState==="condenado"?"convicted":processState==="cerrado_sin_condena"?"closed":"open";
+            return `<article class="event"><time>${escapeHtml(e.fecha_inicio||"Fecha no informada")}</time><strong>${escapeHtml(e.caso_nombre||"Antecedente")}</strong>${e.delitos?`<p>Delitos: ${escapeHtml(e.delitos)}</p>`:""}<p>${escapeHtml(e.resumen||"Sin resumen.")}</p>${e.conclusion?`<p><b>Conclusión:</b> ${escapeHtml(e.conclusion)}</p>`:""}<p><b>Estado:</b> ${escapeHtml(e.estado_actual||"no informado")} · <b>Fuente:</b> ${escapeHtml(e.fuente||"no informada")}</p><div class="state-badge ${badgeClass}"><span>Lectura metodológica:</span><strong>${escapeHtml(formatProcessState(processState))}</strong></div></article>`;
+          }).join(""):`<div class="empty">No existen antecedentes asociados en la base actual.</div>`}
         </section>
         <section class="detail-section"><h3>Noticias relacionadas</h3>
           ${p.noticias && p.noticias.length ? p.noticias.map(n => `
@@ -761,12 +772,25 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       $("#viewNote").innerHTML=`<strong>Cómo leer esta vista</strong>${escapeHtml(v.note)}`;
       $("#panelTitle").textContent=v.panel; $("#panelEyebrow").textContent=v.panelEye; $("#vizHint").textContent=v.hint;
       const vizPanel = $("#viz");
-      if (currentView === "cases") { vizPanel.hidden = true; } else if (vizPanel.hidden) { vizPanel.hidden = false; }
+      const caseFilterEl = $("#caseStateFilter");
+      if (currentView === "cases") {
+        vizPanel.hidden = true;
+        if (caseFilterEl) caseFilterEl.hidden = false;
+        $("#filters").hidden = true;
+      } else {
+        if (vizPanel.hidden) vizPanel.hidden = false;
+        if (caseFilterEl) caseFilterEl.hidden = true;
+        $("#filters").hidden = false;
+      }
       applyFilters();
     }));
     document.querySelectorAll(".chip").forEach(btn=>btn.addEventListener("click",()=>{
       activeFilter=btn.dataset.filter; document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x===btn)); applyFilters();
     }));
+    $("#caseStateFilter").addEventListener("change", e => {
+      caseFilters.estado_procesal = e.target.value;
+      applyFilters();
+    });
     $("#searchInput").addEventListener("input",applyFilters);
     document.addEventListener("click",e=>{
       if(!e.target.closest(".search")) { const box=$("#aliasHint"); if(box) box.hidden = true; }

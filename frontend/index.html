@@ -91,6 +91,13 @@
               <button class="chip" data-filter="review">En revisión</button>
               <button class="chip" data-filter="formal">Formalización</button>
             </div>
+            <select id="caseStateFilter" class="case-state-filter" hidden>
+              <option value="all">Todos los estados</option>
+              <option value="condenado">Condenado</option>
+              <option value="abierto">En investigación / activo</option>
+              <option value="cerrado_sin_condena">Cerrado sin condena</option>
+              <option value="sin_estado">Sin estado registrado</option>
+            </select>
           </div>
           <div class="viz" id="viz" role="img" aria-label="Visualización interactiva">
             <svg id="vizSvg" viewBox="0 0 800 500"></svg>

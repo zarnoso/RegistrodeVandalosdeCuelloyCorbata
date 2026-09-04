@@ -427,3 +427,23 @@ registro-devandalos/
 **Pendiente:**
 - Las 3,670 filas ya existentes en `noticias_menciones` fueron generadas con la lógica vieja (matching por palabra suelta) — pueden incluir falsos positivos. Conviene una limpieza/reproceso con la lógica nueva antes de confiar plenamente en esos datos.
 - El filtro `caseFilters.estado_procesal` existe en el JS pero no tiene ningún `<select>` en el HTML que lo controle — queda fijo en "all" siempre. Falta agregar el control de UI.
+
+### 2026-09-03 (5) — Mapeo de estados real, reordenamiento por severidad, filtro de casos visible, script de auditoría de menciones
+
+**Contexto:** valores reales de `casos_corrupcion.estado` en la BD (en español, con variantes de redacción: "Condenado"/"Condenada", "querella"/"Querella") no coincidían con las claves internas en inglés que usaba el frontend. Se descartó la opción de ocultar políticos "sin antecedentes" (destruiría el propósito de mostrar el "entorno comprometido" — los familiares sin casos propios son justamente el dato que da sentido a esa categoría) y se descartó normalizar la BD (se prefiere preservar el dato original). Se optó por mapeo de traducción centralizado en el backend.
+
+**Backend (`backend.py`):**
+- Nueva función `normalizar_estado()`: traduce los valores reales de la BD (incluida la mayoría — 93/128 casos — con estado vacío, tratado como "sin_estado", no como "sin problemas") a las 4 claves internas (`condenado`, `abierto`, `cerrado_sin_condena`, `sin_estado`).
+- `detalle_politico` y `/api/casos/` ahora agregan `estado_normalizado` a cada evento/caso, sin tocar el campo `estado_actual`/`estado` original (se preserva el texto real para mostrarlo tal cual).
+
+**Frontend:**
+- Todas las comparaciones de estado que antes hacían `.toLowerCase()` contra strings en inglés fijos (que nunca coincidían con los valores reales en español) ahora usan `estado_normalizado`. Corregido en: timeline visual, cronología detallada, badge del header del perfil, filtro/color de la vista de Casos.
+- El badge de estado del header del perfil ahora prioriza el evento **más grave** entre todos los casos del político (condenado > abierto > cerrado sin condena > sin estado), no el más reciente cronológicamente ni un campo fantasma que nunca existía en la respuesta.
+- Nuevo selector visible `#caseStateFilter` en la vista "Casos" (antes el filtro existía en el JS pero no tenía ningún control de UI) — se muestra/oculta según la vista activa, con las 4 categorías normalizadas.
+- Terminología (glosario y `formatProcessState`) ajustada a un lenguaje más directo, pedido explícito del usuario: "Riesgo propio"→"Con casos propios", "Riesgo heredado"→"Entorno comprometido", "Vínculo mediático"→"Mencionado junto a otro caso", "Abierto"→"Investigación en curso", "Sin estado"→"Sin antecedentes".
+
+**Matching de noticias (`migrations/audit_noticias_menciones.py`, nuevo):** script de auditoría/reproceso para las 3,670 menciones ya guardadas con la lógica vieja (matching por palabra suelta). Reconstruye qué políticos matchean el contexto guardado de cada mención usando la lógica nueva (bigramas, mínimo 2 palabras) y marca las que ya no coinciden en una columna nueva `valida_v2` (no elimina nada, solo marca para revisión manual). Modo dry-run por defecto; requiere `--apply` para escribir en la BD.
+
+**Pendiente — bloqueado por falta de acceso a Neon desde este entorno:**
+- Ejecutar `migrations/audit_noticias_menciones.py --apply` en el servidor con acceso real a la BD.
+- Una vez creada la columna `valida_v2`, activar el filtro correspondiente en `detalle_politico` (dejado como comentario `TODO` explícito en el código, con la línea SQL exacta a agregar) para no mostrar menciones marcadas como falso positivo.

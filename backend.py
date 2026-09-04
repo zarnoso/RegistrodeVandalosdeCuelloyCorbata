@@ -65,6 +65,30 @@ def calcular_riesgo_heredado(casos_propios, casos_familiares):
         return "alerta_naranja"
     return "sin_registros"
 
+# Mapeo de traducción: los valores reales de casos_corrupcion.estado están en
+# español y con variantes de redacción ("Condenado"/"Condenada", "querella"/
+# "Querella"), no coinciden con las claves internas en inglés que usa el
+# frontend (formatProcessState). Se traduce acá, en un solo punto, en vez de
+# normalizar la BD (se preserva el dato original tal como se registró, y en
+# vez de forzar traducción al frontend, que tendría que conocer cada variante).
+_ESTADO_MAP = {
+    "condenado": "condenado", "condenada": "condenado", "sentenciado": "condenado", "sentencia": "condenado",
+    "en investigación": "abierto", "en investigacion": "abierto", "activo": "abierto",
+    "formalizado": "abierto", "imputado": "abierto", "prisión preventiva": "abierto",
+    "prision preventiva": "abierto", "querella": "abierto",
+    "suspensión condicional": "cerrado_sin_condena", "suspension condicional": "cerrado_sin_condena",
+    "responsable sin condena": "cerrado_sin_condena",
+    "absuelto": "cerrado_sin_condena", "sobreseido": "cerrado_sin_condena", "archivado": "cerrado_sin_condena",
+}
+
+def normalizar_estado(estado_original):
+    """Traduce el estado real de la BD (español, con variantes) a la clave
+    interna que espera el frontend. Sin match conocido → 'sin_estado' (incluye
+    el 73% de casos con estado vacío en la BD: ausencia de dato, no un estado)."""
+    if not estado_original:
+        return "sin_estado"
+    return _ESTADO_MAP.get(estado_original.strip().lower(), "sin_estado")
+
 @app.get("/")
 def root():
     frontend_path = os.path.join(os.path.dirname(__file__), "frontend", "index.html")
@@ -311,6 +335,8 @@ def detalle_politico(politico_id: int):
             FROM casos_corrupcion WHERE politico_id = %s OR responsable ILIKE %s OR responsable ILIKE %s ORDER BY año_inicio DESC NULLS LAST
         """, (politico_id, f"%{p['nombre_completo']}%", f"%{p['nombre_completo'].split()[0]} {p['nombre_completo'].split()[1] if len(p['nombre_completo'].split())>1 else ''}%".strip()))
         eventos = [dict(row) for row in cur.fetchall()]
+        for e in eventos:
+            e["estado_normalizado"] = normalizar_estado(e.get("estado_actual"))
         cur.execute("SELECT * FROM familiares WHERE politico_id = %s", (politico_id,))
         familiares = [dict(row) for row in cur.fetchall()]
         for f in familiares:
@@ -323,8 +349,14 @@ def detalle_politico(politico_id: int):
         cur.execute("""
             SELECT n.id, n.titulo, n.fuente, n.fecha_publicacion, n.url, nm.contexto
             FROM noticias n JOIN noticias_menciones nm ON n.id = nm.noticia_id
-            WHERE nm.politico_id = %s ORDER BY n.fecha_publicacion DESC LIMIT 20
+            WHERE nm.politico_id = %s
+            ORDER BY n.fecha_publicacion DESC LIMIT 20
         """, (politico_id,))
+        # TODO: una vez corrido `migrations/audit_noticias_menciones.py --apply`
+        # (agrega la columna nm.valida_v2), sumar al WHERE de arriba:
+        #   AND COALESCE(nm.valida_v2, true) = true
+        # para no mostrar menciones marcadas como falso positivo por el matching
+        # viejo. No agregar antes: si la columna no existe, la query falla.
         noticias = [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()
@@ -348,6 +380,8 @@ def casos(limit: int = 100, skip: int = 0):
         cur = conn.cursor()
         cur.execute("SELECT id, nombre, monto, año, responsable, sector, estado, fuente_url FROM casos_corrupcion ORDER BY año_inicio DESC NULLS LAST LIMIT %s OFFSET %s", (limit, skip))
         rows = [dict(r) for r in cur.fetchall()]
+        for r in rows:
+            r["estado_normalizado"] = normalizar_estado(r.get("estado"))
     finally:
         cur.close()
         conn.close()

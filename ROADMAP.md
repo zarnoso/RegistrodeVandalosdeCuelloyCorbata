@@ -45,7 +45,7 @@ scraping_jobs, comunas_chile, api.mapata.cl) mezclado por error. Se limpió el
 | # | Qué | Por qué importa | Bloqueante |
 |---|---|---|---|
 | 1 | ✅ Poblar `relaciones` con datos reales | completado 2026-09-03 — 7,809 filas (mención conjunta en noticias, tipo `mediatico`) | — |
-| 2 | ✅ Poblar `noticias_menciones` | completado 2026-09-03 — 3,670 filas, vía `worker_noticias.py` | — |
+| 2 | ✅ Poblar `noticias_menciones` | completado 2026-09-03 — 3,670 filas, vía `worker_noticias.py`; auditoría de falsos positivos pendiente (`migrations/audit_noticias_menciones.py --apply`) | requiere correr el script en el servidor con acceso a Neon |
 | 3 | Migrar el resto de `casos_corrupcion` a FK real | avanzó 15→90/128 (70%) el 2026-09-03; quedan 22 sin resolver por nombre no encontrado en `politicos` (revisar manualmente) | ninguno, es revisión de datos |
 | 4 | ✅ Hero explicativo en la portada | ya existía, sin cambios | — |
 | 5 | ✅ Glosario ("Guía rápida") | completado 2026-09-03 — 4 tarjetas con la paleta de color real del sitio | — |

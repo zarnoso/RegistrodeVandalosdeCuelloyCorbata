@@ -278,6 +278,15 @@
     }
     .chip { padding: 8px 11px; }
     .chip.active { color: white; border-color: var(--teal); background: var(--teal); }
+    .case-state-filter {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 8px 11px;
+      color: var(--ink);
+    }
     .viz {
       position: relative;
       height: 500px;
