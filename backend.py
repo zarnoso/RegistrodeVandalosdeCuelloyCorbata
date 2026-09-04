@@ -350,6 +350,7 @@ def detalle_politico(politico_id: int):
             SELECT n.id, n.titulo, n.fuente, n.fecha_publicacion, n.url, nm.contexto
             FROM noticias n JOIN noticias_menciones nm ON n.id = nm.noticia_id
             WHERE nm.politico_id = %s
+              AND COALESCE(nm.valida_v2, true) = true
             ORDER BY n.fecha_publicacion DESC LIMIT 20
         """, (politico_id,))
         # TODO: una vez corrido `migrations/audit_noticias_menciones.py --apply`
@@ -503,6 +504,7 @@ def conexiones_no_declaradas(limit: int = 50):
             JOIN politicos p ON p.id = pa.politico_id
             JOIN noticias_menciones nm ON nm.politico_id = pa.politico_id
             WHERE NOT EXISTS (SELECT 1 FROM relaciones r WHERE r.politico_origen_id = pa.politico_id AND r.descripcion ILIKE '%%' || pa.alias_nombre || '%%')
+              AND COALESCE(nm.valida_v2, true) = true
             GROUP BY pa.politico_id, pa.alias_nombre, pa.alias_tipo, p.nombre_completo
             ORDER BY menciones DESC LIMIT %s
         """, (limit,))
@@ -527,7 +529,7 @@ def comparar_politicos(ids: str):
             SELECT id, nombre_completo, tipo, region, partido,
                    (SELECT COUNT(*) FROM casos_corrupcion WHERE politico_id = p.id) as casos_count,
                    (SELECT COUNT(*) FROM familiares WHERE politico_id = p.id) as familiares_count,
-                   (SELECT COUNT(*) FROM noticias_menciones WHERE politico_id = p.id) as menciones_count
+                   (SELECT COUNT(*) FROM noticias_menciones WHERE politico_id = p.id AND COALESCE(valida_v2, true) = true) as menciones_count
             FROM politicos p WHERE id = ANY(%s)
         """, (politico_ids,))
         politicos = [dict(r) for r in cur.fetchall()]
