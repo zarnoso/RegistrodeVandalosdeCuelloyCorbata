@@ -443,9 +443,9 @@ def listar_funcionarios(institucion: str = None, limit: int = 100, skip: int = 0
         cur.execute("SELECT COUNT(*) as total FROM funcionarios_gobierno")
         total_count = cur.fetchone()['total']
         if institucion:
-            cur.execute("SELECT id, nombre, cargo, institucion, dependencia_jerarquica, fecha_designacion, fuente FROM funcionarios_gobierno WHERE institucion ILIKE %s ORDER BY nombre LIMIT %s OFFSET %s", (f"%{institucion}%", limit, skip))
+            cur.execute("SELECT id, nombre_completo, cargo, institucion, dependencia_jerarquica, fecha_designacion, fuente FROM funcionarios_gobierno WHERE institucion ILIKE %s ORDER BY nombre_completo LIMIT %s OFFSET %s", (f"%{institucion}%", limit, skip))
         else:
-            cur.execute("SELECT id, nombre, cargo, institucion, dependencia_jerarquica, fecha_designacion, fuente FROM funcionarios_gobierno ORDER BY nombre LIMIT %s OFFSET %s", (limit, skip))
+            cur.execute("SELECT id, nombre_completo, cargo, institucion, dependencia_jerarquica, fecha_designacion, fuente FROM funcionarios_gobierno ORDER BY nombre_completo LIMIT %s OFFSET %s", (limit, skip))
         data = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -471,7 +471,7 @@ def lista_instituciones():
     conn = get_db()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT DISTINCT institucion FROM funcionarios_gobierno ORDER BY instituciones")
+        cur.execute("SELECT DISTINCT institucion FROM funcionarios_gobierno WHERE institucion IS NOT NULL AND institucion != '' ORDER BY institucion")
         rows = [r['institucion'] for r in cur.fetchall()]
     finally:
         cur.close()

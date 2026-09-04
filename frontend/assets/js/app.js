@@ -96,6 +96,10 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
         renderCasesIntoResults();
         return;
       }
+      if (currentView === "network" || currentView === "som") {
+        renderViz();
+        return;
+      }
       renderList();
       renderViz();
       searchAliases(q);
@@ -157,10 +161,11 @@ const _isLocal = location.hostname === "localhost" || location.hostname === "127
       $("#viz").hidden = isFuncView;
       if (funcList) funcList.hidden = !isFuncView;
       if (isFuncView) { renderFuncionariosList(); return; }
+      if (currentView === "cases") { renderList(); return; }
       svg.replaceChildren();
       if (currentView === "territory") renderTerritory(svg);
-      if (currentView === "network") renderNetwork(svg);
-      if (currentView === "som") renderSom(svg);
+      if (currentView === "network") { renderNetwork(svg); renderList(); }
+      if (currentView === "som") { renderSom(svg); renderList(); }
     }
 
     function renderCasesIntoResults() {
